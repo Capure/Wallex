@@ -19,10 +19,10 @@
 const os = require('os');
 const bindings = require('bindings');
 
-exports.attachWindow = function attachWindow(window) {
+exports.attachWindow = function(window, offsetX, offsetY, width, height) {
   switch (os.platform()) {
     case 'win32':
-      bindings('electron-wallpaper').attachWindow(window.getNativeWindowHandle(), 1920, 0, 2560, 1440);
+      bindings('electron-wallpaper').attachWindow(window.getNativeWindowHandle(), offsetX, offsetY, width, height);
       break;
     default:
       throw new Error('Platform not supported.');
