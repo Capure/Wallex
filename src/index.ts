@@ -5,7 +5,7 @@ import path from 'path';
 
 app.allowRendererProcessReuse = true;
 
-let wallpaperWindow: null | BrowserWindow;
+let wallpaperWindows: BrowserWindow[] = [];
 let tray: Tray | null;
 let currentScreen: Electron.Display | null;
 let currentScreenIdx: number | null;
@@ -24,10 +24,10 @@ const getOffsetX = () => {
   }
 }
 
-const destroyWallpaper = () => {
-  if (wallpaperWindow) {
-    wallpaperWindow.close();
-    wallpaperWindow = null;
+const destroyWallpaper = (idx: number) => {
+  if (wallpaperWindows[idx]) {
+    wallpaperWindows[idx].close();
+    wallpaperWindows = wallpaperWindows.filter((_, index) => index !== idx);
   }
 }
 
@@ -35,7 +35,7 @@ const createWallpaperWindow = function() {
   if (!currentScreen || currentScreenIdx === null || !screens) {
     throw Error("Current screen is unset!");
   }
-  wallpaperWindow = new BrowserWindow({
+  wallpaperWindows[currentScreenIdx] = new BrowserWindow({
     width: 1000, // Initial value cuz electron || windows (I don't know what's the problem at this point)
     height: 1000, // Initial value cuz electron || windows (I don't know what's the problem at this point)
     autoHideMenuBar: true,
@@ -48,8 +48,8 @@ const createWallpaperWindow = function() {
     // }, // 3 fucking lines cuz electron is "SECURE" now
     // The lines above allow node modules in wallpapers
   });
-  wallpaperWindow.loadFile('../public/dashboard.html');
-  electronWallpaper.attachWindow(wallpaperWindow, getOffsetX(),
+  wallpaperWindows[currentScreenIdx].loadFile('../public/dashboard.html');
+  electronWallpaper.attachWindow(wallpaperWindows[currentScreenIdx], getOffsetX(),
     currentScreen.bounds.y, currentScreen.bounds.width, currentScreen.bounds.height);
 };
 
@@ -59,7 +59,7 @@ const setCurrentScreen = (idx: number) => {
   }
   currentScreen = screens[idx];
   currentScreenIdx = idx;
-  destroyWallpaper();
+  destroyWallpaper(idx);
   createWallpaperWindow();
 }
 
@@ -69,14 +69,23 @@ const createTray = () => {
   }
   tray = new Tray(path.join(__dirname, '../public/logo.png'));
   const ctxMenu = Menu.buildFromTemplate([
-    { label: 'display', type: 'submenu', submenu: [
-      ...(screens.map((_, idx): MenuItemConstructorOptions => ({
-        label: idx.toString(),
-        type: 'normal',
-        click: () => setCurrentScreen(idx)
-      })))
-    ] }, // This creates a menu entry for every monitor available in the system. TODO: allow multiply monitors
-    { label: 'quit', type: 'normal', click: () => { destroyWallpaper(); app.quit() } }
+    // { label: 'display', type: 'submenu', submenu: [
+    //   ...(screens.map((_, idx): MenuItemConstructorOptions => ({
+    //     label: idx.toString(),
+    //     type: 'normal',
+    //     click: () => setCurrentScreen(idx)
+    //   })))
+    // ] }, // This creates a menu entry for every monitor available in the system. TODO: allow multiply monitors
+    ...(screens.map((_, idx): MenuItemConstructorOptions => {
+      return { label: `Screen ${idx+1}`, type: 'submenu', submenu: [
+        { label: 'Disable', type: 'normal', click: () => destroyWallpaper(idx) },
+        { label: 'Default', type: 'normal', click: () => setCurrentScreen(idx) }
+      ] }
+    })),
+    { label: 'quit', type: 'normal', click: () => { 
+      wallpaperWindows.map((_, idx) => destroyWallpaper(idx));
+      app.quit();
+    } }
   ]);
   tray.setToolTip('Wallex');
   tray.setContextMenu(ctxMenu);
