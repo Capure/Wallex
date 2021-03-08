@@ -61,6 +61,7 @@
   "dependencies": {
     "@babel/runtime": "^7.13.9",
     "bindings": "^1.5.0",
+    "global-mouse-events": "^1.0.3",
     "node-addon-api": "^3.1.0",
     "prebuild-install": "^6.0.1"
   }

@@ -3,6 +3,7 @@ import electronWallpaper from '../electronWallpaper';
 import path from 'path';
 import fs from 'fs';
 import { Wallpaper } from './interfaces/wallpaper';
+import { loadProject } from './utils/loadProject';
 
 class Wallex {
   private wallpaperWindows: BrowserWindow[] = [];
@@ -47,7 +48,7 @@ class Wallex {
       const screensToTheLeft = this.screens.slice(0, this.currentScreenIdx);
       return screensToTheLeft.reduce((sum, item) => sum + item.bounds.width, 0); // My trial and error approach to windows positioning system
       // It sums the width of all the monitors to the left
-      // This based on my system where x is:
+      // This is based on my system where x is:
       // - according to electron: -1920, 0, 2560
       // - according to windows: 0, 1920, 4440
       // So I assume that windows is the one to go with
@@ -65,6 +66,7 @@ class Wallex {
     if (!this.currentScreen || this.currentScreenIdx === null || !this.screens) {
       throw Error("Current screen is unset!");
     }
+    const project = loadProject(pathToWallpaper);
     this.wallpaperWindows[this.currentScreenIdx] = new BrowserWindow({
       width: 1000, // Initial value cuz electron || windows (I don't know what's the problem at this point)
       height: 1000, // Initial value cuz electron || windows (I don't know what's the problem at this point)
@@ -72,13 +74,19 @@ class Wallex {
       frame: false,
       transparent: true,
       webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
-        enableRemoteModule: true
-      }, // 3 fucking lines cuz electron is "SECURE" now
-      // The lines above allow node modules in wallpapers
+        preload: path.join(__dirname, '..', 'public', 'preload.js'),
+        contextIsolation: false
+      }
+      // The lines above enable the wallpaper engine emulation
     });
-    this.wallpaperWindows[this.currentScreenIdx].loadFile(pathToWallpaper);
+    this.wallpaperWindows[this.currentScreenIdx].loadFile(pathToWallpaper)
+    if (project) {
+      this.wallpaperWindows[this.currentScreenIdx].webContents.executeJavaScript(`window.project = JSON.parse(${JSON.stringify(project)})`);
+      // Injects the project config
+    } else {
+      this.wallpaperWindows[this.currentScreenIdx].webContents.executeJavaScript(`window.noproject = true`);
+      // Stops the interval if there is no config
+    }
     electronWallpaper.attachWindow(this.wallpaperWindows[this.currentScreenIdx], this.getOffsetX(), // getOffsetX is needed cuz electron can't into multi display setups
       this.currentScreen.bounds.y, this.currentScreen.bounds.width, this.currentScreen.bounds.height);
   };
