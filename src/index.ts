@@ -4,6 +4,8 @@ import path from 'path';
 import fs from 'fs';
 import { Wallpaper } from './interfaces/wallpaper';
 import { loadProject } from './utils/loadProject';
+import { loadSettings } from './utils/loadSettings';
+import { updateSettings } from './utils/updateSettings';
 
 class Wallex {
   private wallpaperWindows: BrowserWindow[] = [];
@@ -13,12 +15,18 @@ class Wallex {
   private currentScreenIdx: number | null = null; // Same as above
   private readonly pathToData = app.getPath('userData');
   private pathsToWallpapers: Wallpaper[] = [];
+  private settings = loadSettings(this.pathToData);
 
   constructor() {
     this.loadWallpapers(); // Initial wallpaper load
     app.on('ready', () => {
       this.screens = screen.getAllDisplays().sort((a, b) => a.bounds.x - b.bounds.x); // Electron can't into multi display setups
       this.createTray();
+      this.settings.prevWallpapers.forEach(wallpaper => {
+        if (wallpaper.displayIdx !== undefined && this.screens && wallpaper.displayIdx < this.screens.length) {
+          this.setCurrentScreen(wallpaper.displayIdx, wallpaper.path);
+        }
+      });
     });
     app.on('window-all-closed', () => {}); // Overwrites the default exit behaviour
   }
@@ -55,10 +63,14 @@ class Wallex {
     }
   }
 
-  private destroyWallpaper(idx: number) {
+  private destroyWallpaper(idx: number, deleteFromSettings?: boolean) {
     if (this.wallpaperWindows[idx]) {
       this.wallpaperWindows[idx].close();
       this.wallpaperWindows = this.wallpaperWindows.filter((_, index) => index !== idx);
+      if (deleteFromSettings) {
+        updateSettings(this.pathToData, {...this.settings, ...{ prevWallpapers: [...this.settings.prevWallpapers.filter(wallpaper => wallpaper.displayIdx !== idx)] }});
+        this.settings = loadSettings(this.pathToData);
+      }
     }
   }
 
@@ -95,6 +107,8 @@ class Wallex {
     }
     electronWallpaper.attachWindow(this.wallpaperWindows[this.currentScreenIdx], this.getOffsetX(), // getOffsetX is needed cuz electron can't into multi display setups
       this.currentScreen.bounds.y, this.currentScreen.bounds.width, this.currentScreen.bounds.height);
+    updateSettings(this.pathToData, { prevWallpapers: [...this.settings.prevWallpapers, { name: "undefined", path: pathToWallpaper, displayIdx: this.currentScreenIdx }] });
+    this.settings = loadSettings(this.pathToData);
   };
 
   private setCurrentScreen(idx: number, pathToWallpaper: string) {
@@ -103,7 +117,7 @@ class Wallex {
     }
     this.currentScreen = this.screens[idx];
     this.currentScreenIdx = idx;
-    this.destroyWallpaper(idx);
+    this.destroyWallpaper(idx, true);
     this.createWallpaperWindow(pathToWallpaper);
   }
 
@@ -115,7 +129,7 @@ class Wallex {
     const ctxMenu = Menu.buildFromTemplate([
       ...(this.screens.map((_, idx): MenuItemConstructorOptions => { // Displays a submenu for each screen
         return { label: `Screen ${idx+1}`, type: 'submenu', submenu: [
-          { label: 'Disable', type: 'normal', click: () => this.destroyWallpaper(idx) }, // Allows the user to disable the wallpaper on a given screen
+          { label: 'Disable', type: 'normal', click: () => this.destroyWallpaper(idx, true) }, // Allows the user to disable the wallpaper on a given screen
           ...(this.pathsToWallpapers.map((item): MenuItemConstructorOptions => 
           ({ label: item.name, type: 'normal', click: () => this.setCurrentScreen(idx, item.path) }))) // Wallpaper entry
         ] }
