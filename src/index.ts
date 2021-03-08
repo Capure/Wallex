@@ -67,6 +67,12 @@ class Wallex {
       throw Error("Current screen is unset!");
     }
     const project = loadProject(pathToWallpaper);
+    if (project) {
+      if (JSON.parse(project).type !== "web") {
+        dialog.showMessageBox({ title: 'Not impemented!', message: 'The wallpaper must be of type "web"!' });
+        return;
+      }
+    }
     this.wallpaperWindows[this.currentScreenIdx] = new BrowserWindow({
       width: 1000, // Initial value cuz electron || windows (I don't know what's the problem at this point)
       height: 1000, // Initial value cuz electron || windows (I don't know what's the problem at this point)
