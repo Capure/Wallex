@@ -63,14 +63,19 @@ class Wallex {
     }
   }
 
+  private updatePrevWallpaper(idx: number, newWallpaper?: Wallpaper) {
+      updateSettings(this.pathToData,
+        {...this.settings,
+          ...{ prevWallpapers: [...this.settings.prevWallpapers.filter(wallpaper =>
+            wallpaper.displayIdx !== idx), ...(newWallpaper ? [newWallpaper] : [])] }});
+      this.settings = loadSettings(this.pathToData);
+  }
+
   private destroyWallpaper(idx: number, deleteFromSettings?: boolean) {
     if (this.wallpaperWindows[idx]) {
       this.wallpaperWindows[idx].close();
       this.wallpaperWindows = this.wallpaperWindows.filter((_, index) => index !== idx);
-      if (deleteFromSettings) {
-        updateSettings(this.pathToData, {...this.settings, ...{ prevWallpapers: [...this.settings.prevWallpapers.filter(wallpaper => wallpaper.displayIdx !== idx)] }});
-        this.settings = loadSettings(this.pathToData);
-      }
+      if (deleteFromSettings) { this.updatePrevWallpaper(idx) }
     }
   }
 
@@ -105,10 +110,13 @@ class Wallex {
       this.wallpaperWindows[this.currentScreenIdx].webContents.executeJavaScript(`window.noproject = true`);
       // Stops the interval if there is no config
     }
+    const jsOffsetX = this.screens[this.currentScreenIdx].bounds.x; // Electron offset != winapi
+    const jsOffsetY = this.screens[this.currentScreenIdx].bounds.y; // Electron offset != winapi
+    this.wallpaperWindows[this.currentScreenIdx].webContents.executeJavaScript(`window.jsOffsetX = ${jsOffsetX}; window.jsOffsetY = ${jsOffsetY}`); // allows the preload to translate mouse events
     electronWallpaper.attachWindow(this.wallpaperWindows[this.currentScreenIdx], this.getOffsetX(), // getOffsetX is needed cuz electron can't into multi display setups
       this.currentScreen.bounds.y, this.currentScreen.bounds.width, this.currentScreen.bounds.height);
-    updateSettings(this.pathToData, { prevWallpapers: [...this.settings.prevWallpapers, { name: "undefined", path: pathToWallpaper, displayIdx: this.currentScreenIdx }] });
-    this.settings = loadSettings(this.pathToData);
+    this.updatePrevWallpaper(this.currentScreenIdx,
+      { name: "undefined", path: pathToWallpaper, displayIdx: this.currentScreenIdx });
   };
 
   private setCurrentScreen(idx: number, pathToWallpaper: string) {
