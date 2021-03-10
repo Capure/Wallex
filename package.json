@@ -16,6 +16,7 @@
       "node_modules/",
       "public/",
       "electronWallpaper/",
+      "mouseEvents",
       "build/"
     ],
     "directories": {
