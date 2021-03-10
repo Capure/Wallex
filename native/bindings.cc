@@ -22,6 +22,7 @@
 #include <napi.h>
 
 #include "./electronwallpaper.h"
+#include "./mouseevents.h"
 #include "./output.h"
 
 namespace bindings {
@@ -35,13 +36,14 @@ namespace bindings {
   using Napi::Function;
   using Napi::Function;
   using electronwallpaper::AttachWindow;
+  using mouseevents::createMouseForwarder;
   using Output::CreateError;
 
   void AttachWindowExport(const CallbackInfo& info) {
     Env env = info.Env();
 
-    if (info.Length() < 2) {
-      CreateError(env, "attachWindow expects two arguments").ThrowAsJavaScriptException();
+    if (info.Length() < 5) {
+      CreateError(env, "attachWindow expects five arguments").ThrowAsJavaScriptException();
     } else if (!info[0].IsObject()) {
       CreateError(env, "attachWindow expects first argument to be a window handle buffer").ThrowAsJavaScriptException();
     }
@@ -67,8 +69,31 @@ namespace bindings {
     AttachWindow(windowHandleBuffer, OffsetX, OffsetY, Width, Height);
   }
 
+  void createMouseForwarderExport(const CallbackInfo& info) {
+    Env env = info.Env();
+    
+    if (info.Length() < 3) {
+      CreateError(env, "move expects 3 arguments.").ThrowAsJavaScriptException();
+    } else if (!info[0].IsObject()) {
+      CreateError(env, "move expects first argument to be a window handle buffer").ThrowAsJavaScriptException();
+    }
+    if (!info[1].IsNumber()) {
+      CreateError(env, "move expects the second argument to be a number(x).").ThrowAsJavaScriptException();
+    }
+    if (!info[2].IsNumber()) {
+      CreateError(env, "move expects the third argument to be a number(y).").ThrowAsJavaScriptException();
+    }
+
+    unsigned char* windowHandleBuffer = info[0].As<Uint8Array>().Data();
+
+    int offsetX = info[1].ToNumber();
+    int offsetY = info[2].ToNumber();
+
+    createMouseForwarder(windowHandleBuffer, offsetX, offsetY);
+  }
   Object Initialize(Env env, Object exports) {
     exports.Set(String::New(env, "attachWindow"), Function::New(env, AttachWindowExport));
+    exports.Set(String::New(env, "createMouseForwarder"), Function::New(env, createMouseForwarderExport));
     return exports;
   }
 }  // namespace bindings

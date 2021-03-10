@@ -98,7 +98,8 @@ class Wallex {
       transparent: true,
       webPreferences: {
         preload: path.join(__dirname, '..', 'public', 'preload.js'),
-        contextIsolation: false
+        contextIsolation: false,
+        enableRemoteModule: true
       }
       // The lines above enable the wallpaper engine emulation
     });
@@ -112,11 +113,13 @@ class Wallex {
     }
     const jsOffsetX = this.screens[this.currentScreenIdx].bounds.x; // Electron offset != winapi
     const jsOffsetY = this.screens[this.currentScreenIdx].bounds.y; // Electron offset != winapi
-    this.wallpaperWindows[this.currentScreenIdx].webContents.executeJavaScript(`window.jsOffsetX = ${jsOffsetX}; window.jsOffsetY = ${jsOffsetY}`); // allows the preload to translate mouse events
+    // this.wallpaperWindows[this.currentScreenIdx].webContents.executeJavaScript(`window.jsOffsetX = ${jsOffsetX}; window.jsOffsetY = ${jsOffsetY}`); // allows the preload to translate mouse events
+    this.wallpaperWindows[this.currentScreenIdx].webContents.executeJavaScript(`const e = new Event('offsetLoaded'); e.jsOffsetX = ${jsOffsetX}; e.jsOffsetY = ${jsOffsetY}; window.dispatchEvent(e)`);
     electronWallpaper.attachWindow(this.wallpaperWindows[this.currentScreenIdx], this.getOffsetX(), // getOffsetX is needed cuz electron can't into multi display setups
       this.currentScreen.bounds.y, this.currentScreen.bounds.width, this.currentScreen.bounds.height);
     this.updatePrevWallpaper(this.currentScreenIdx,
       { name: "undefined", path: pathToWallpaper, displayIdx: this.currentScreenIdx });
+    this.wallpaperWindows[this.currentScreenIdx].webContents.openDevTools({ mode: 'detach' });
   };
 
   private setCurrentScreen(idx: number, pathToWallpaper: string) {

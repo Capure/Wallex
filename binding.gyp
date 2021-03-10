@@ -1,7 +1,7 @@
 {
   "targets": [
     {
-      "target_name": "electron-wallpaper",
+      "target_name": "wallex-native",
       "sources": [
         "native/output.cc",
         "native/bindings.cc"
@@ -23,13 +23,13 @@
         [
           "OS==\"win\"",
           {
-            "sources": ["native/electronwallpaper_win.cc"]
+            "sources": ["native/electronwallpaper_win.cc", "native/mouseevents.cc"]
           }
         ],
         [
           "OS!=\"win\"",
           {
-            "sources": ["native/electronwallpaper_noop.cc"]
+            "sources": ["native/electronwallpaper_noop.cc"] # TODO: add noop for mouse events
           }
         ]
       ]

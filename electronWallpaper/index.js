@@ -22,7 +22,7 @@ const bindings = require('bindings');
 exports.attachWindow = function(window, offsetX, offsetY, width, height) {
   switch (os.platform()) {
     case 'win32':
-      bindings('electron-wallpaper').attachWindow(window.getNativeWindowHandle(), offsetX, offsetY, width, height);
+      bindings('wallex-native').attachWindow(window.getNativeWindowHandle(), offsetX, offsetY, width, height);
       break;
     default:
       throw new Error('Platform not supported.');
