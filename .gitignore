@@ -79,3 +79,5 @@ typings/
 
 # babel output directory
 lib/
+
+.vscode/

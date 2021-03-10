@@ -8,7 +8,7 @@ namespace mouseevents {
   HHOOK _hook;
   HWND hwnd;
   HANDLE _hThread;
-  HWND slv_32;
+  HWND shell_dll;
 
   int jsOffsetX;
   int jsOffsetY;
@@ -31,7 +31,9 @@ namespace mouseevents {
   LRESULT CALLBACK HookCallback(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0) {
         MSLLHOOKSTRUCT *data = (MSLLHOOKSTRUCT *)lParam;
-
+        if (WindowFromPoint(data->pt) != shell_dll) {
+            return CallNextHookEx(_hook, nCode, wParam, lParam);
+        }
         auto x = data->pt.x;
         auto y = data->pt.y;
 
@@ -60,9 +62,14 @@ namespace mouseevents {
   }
 
   BOOL CALLBACK FindSysListView32(HWND hwnd, LPARAM param) {
-    slv_32 = FindWindowEx(hwnd, NULL, "SysListView32", NULL);
+    shell_dll = FindWindowEx(hwnd, NULL, "SHELLDLL_DefView", NULL);
 
-    return slv_32 ? TRUE : FALSE;
+    if (shell_dll) {
+        shell_dll = FindWindowEx(shell_dll, NULL, "SysListView32", NULL);
+        return FALSE;
+    }
+
+    return TRUE;
   }
 
   void createMouseForwarder(unsigned char* handleBuffer, int offsetX, int offsetY) {
