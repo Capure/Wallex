@@ -15,7 +15,7 @@ namespace mouseevents {
 
   void Move(int x, int y) {
     LPARAM mousePosWallpaper = MAKELPARAM(x - jsOffsetX, y - jsOffsetY);
-    PostMessageA(hwnd, WM_MOUSEMOVE, 0, mousePosWallpaper);
+    PostMessageA(hwnd, WM_MOUSEMOVE,0 , mousePosWallpaper);
   }
 
   void LMB_Down(int x, int y) {
@@ -62,10 +62,10 @@ namespace mouseevents {
   }
 
   BOOL CALLBACK FindSysListView32(HWND hwnd, LPARAM param) {
-    HWND shell_dll = FindWindowEx(hwnd, NULL, "SHELLDLL_DefView", NULL);
+    HWND shell_dll = FindWindowExA(hwnd, NULL, (LPCSTR)"SHELLDLL_DefView", NULL);
 
     if (shell_dll) {
-        slv_32 = FindWindowEx(shell_dll, NULL, "SysListView32", NULL);
+        slv_32 = FindWindowExA(shell_dll, NULL, (LPCSTR)"SysListView32", NULL);
         return FALSE;
     }
 

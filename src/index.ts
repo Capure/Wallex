@@ -104,9 +104,18 @@ class Wallex {
       }
       // The lines above enable the wallpaper engine emulation
     });
+    const runtimeSettings = {
+      disableMouseEvents: false,
+      disableSound: false
+    }
     this.wallpaperWindows[this.currentScreenIdx].loadFile(pathToWallpaper)
     if (project) { // This should become a dispatchEvent
       this.wallpaperWindows[this.currentScreenIdx].webContents.executeJavaScript(`window.project = JSON.parse(${JSON.stringify(project)})`);
+      const projectObject = JSON.parse(project);
+      if (projectObject.wallex) { // Loads wallex runtime settings
+        if (projectObject.wallex.disableMouseEvents) { runtimeSettings.disableMouseEvents = true }
+        if (projectObject.wallex.disableSound) { runtimeSettings.disableSound = true }
+      } 
       // Injects the project config
     } else {
       this.wallpaperWindows[this.currentScreenIdx].webContents.executeJavaScript(`window.noproject = true`);
@@ -114,11 +123,15 @@ class Wallex {
     }
     const jsOffsetX = this.screens[this.currentScreenIdx].bounds.x; // Electron offset != winapi
     const jsOffsetY = this.screens[this.currentScreenIdx].bounds.y; // Electron offset != winapi
-    mouseEventsNative.createMouseForwarder(this.wallpaperWindows[this.currentScreenIdx], jsOffsetX, jsOffsetY); // Forwards the mouse events to the wallpaper
+    if (!runtimeSettings.disableMouseEvents) {
+      mouseEventsNative.createMouseForwarder(this.wallpaperWindows[this.currentScreenIdx], jsOffsetX, jsOffsetY); // Forwards the mouse events to the wallpaper
+    }
+      this.wallpaperWindows[this.currentScreenIdx].webContents.executeJavaScript(`window.enableSound = ${!runtimeSettings.disableSound};`);
     electronWallpaper.attachWindow(this.wallpaperWindows[this.currentScreenIdx], this.getOffsetX(), // getOffsetX is needed cuz electron can't into multi display setups
       this.currentScreen.bounds.y, this.currentScreen.bounds.width, this.currentScreen.bounds.height);
     this.updatePrevWallpaper(this.currentScreenIdx,
       { name: "undefined", path: pathToWallpaper, displayIdx: this.currentScreenIdx });
+    this.wallpaperWindows[this.currentScreenIdx].webContents.openDevTools({ mode: 'detach' });
   };
 
   private setCurrentScreen(idx: number, pathToWallpaper: string) {
