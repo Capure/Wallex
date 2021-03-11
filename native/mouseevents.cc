@@ -8,7 +8,7 @@ namespace mouseevents {
   HHOOK _hook;
   HWND hwnd;
   HANDLE _hThread;
-  HWND shell_dll;
+  HWND slv_32;
 
   int jsOffsetX;
   int jsOffsetY;
@@ -31,7 +31,7 @@ namespace mouseevents {
   LRESULT CALLBACK HookCallback(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0) {
         MSLLHOOKSTRUCT *data = (MSLLHOOKSTRUCT *)lParam;
-        if (WindowFromPoint(data->pt) != shell_dll) {
+        if (WindowFromPoint(data->pt) != slv_32) {
             return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
         auto x = data->pt.x;
@@ -62,10 +62,10 @@ namespace mouseevents {
   }
 
   BOOL CALLBACK FindSysListView32(HWND hwnd, LPARAM param) {
-    shell_dll = FindWindowEx(hwnd, NULL, "SHELLDLL_DefView", NULL);
+    HWND shell_dll = FindWindowEx(hwnd, NULL, "SHELLDLL_DefView", NULL);
 
     if (shell_dll) {
-        shell_dll = FindWindowEx(shell_dll, NULL, "SysListView32", NULL);
+        slv_32 = FindWindowEx(shell_dll, NULL, "SysListView32", NULL);
         return FALSE;
     }
 
