@@ -33,6 +33,7 @@ class Wallex {
       this.uiManager.on('setWallpaper', e => {
         if (this.browserWindowManager) {
           const { wallpaperIdx, screenId } = e;
+          this.browserWindowManager.destroyWindowByScreenId(screenId);
           const wallpaper = this.wallpaperManager.getWallpaperByIdx(wallpaperIdx);
           this.settingsManager?.updateWallpaper(screenId, wallpaper);
           this.browserWindowManager.createNewWindow(screenId, wallpaper);
