@@ -3,7 +3,7 @@ import path from 'path';
 
 export const loadProject = (pathToWallpaper: string) => {
     try {
-        return fs.readFileSync(path.join(pathToWallpaper.split("\\").slice(0, -1).join("\\"), 'project.json'), { encoding: 'utf8' });
+        return JSON.parse(fs.readFileSync(path.join(pathToWallpaper, 'project.json'), { encoding: 'utf8' }));
     } catch {
         return null;
     }

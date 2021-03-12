@@ -2,7 +2,6 @@
 window.wallpaperRegisterAudioListener = (wallpaperAudioListener) => {
   window.wallpaperAudioListener = wallpaperAudioListener;
   window.dispatchEvent(new Event('audioListenerLoaded'));
-  console.log(1)
 }
 
 window.enableSound = null;

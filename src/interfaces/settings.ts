@@ -1,7 +1,7 @@
-import { Wallpaper } from "./wallpaper";
+import { WallpaperSetting } from "./wallpaperSetting";
 
 export interface Settings {
     version: number,
     restoreWallpapers: boolean,
-    prevWallpapers: Wallpaper[]
+    prevWallpapers: WallpaperSetting[]
 }
