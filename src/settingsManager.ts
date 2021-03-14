@@ -18,8 +18,10 @@ export class SettingsManager {
   }
   private loadPrevWallpapers() {
     this.settings.prevWallpapers.forEach(wallpaperSettingOld => {
-      const wallpaperSetting = {...wallpaperSettingOld, wallpaper:{...wallpaperSettingOld.wallpaper, project:loadProject(wallpaperSettingOld.wallpaper.path)}};//getting the path to last wallpaper but ignoring the settings
-        this.browserWindowManager.createNewWindow(wallpaperSetting.screenId, wallpaperSetting.wallpaper);
+      try {
+        const wallpaperSetting = {...wallpaperSettingOld, wallpaper:{...wallpaperSettingOld.wallpaper, project:loadProject(wallpaperSettingOld.wallpaper.path)}};//getting the path to last wallpaper but ignoring the settings
+          this.browserWindowManager.createNewWindow(wallpaperSetting.screenId, wallpaperSetting.wallpaper);
+      } catch {}
     });
   }
   public updateWallpaper(screenId: number, wallpaper?: Wallpaper) {
