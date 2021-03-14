@@ -3,6 +3,8 @@ import { loadSettings } from './utils/loadSettings';
 import { updateSettings } from './utils/updateSettings';
 import { Settings } from './interfaces/settings';
 import { BrowserWindowManager } from './browserWindowManager';
+import { loadProject } from './utils/loadProject';
+import path from "path";
 
 export class SettingsManager {
   private readonly pathToData: string;
@@ -15,10 +17,9 @@ export class SettingsManager {
     this.loadPrevWallpapers();
   }
   private loadPrevWallpapers() {
-    this.settings.prevWallpapers.forEach(wallpaperSetting => {
-      try {
+    this.settings.prevWallpapers.forEach(wallpaperSettingOld => {
+      const wallpaperSetting = {...wallpaperSettingOld, wallpaper:{...wallpaperSettingOld.wallpaper, project:loadProject(wallpaperSettingOld.wallpaper.path)}};//getting the path to last wallpaper but ignoring the settings
         this.browserWindowManager.createNewWindow(wallpaperSetting.screenId, wallpaperSetting.wallpaper);
-      } catch {}
     });
   }
   public updateWallpaper(screenId: number, wallpaper?: Wallpaper) {
