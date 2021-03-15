@@ -42,6 +42,14 @@ export class BrowserWindowManager {
     const runtimeSettings = this.loadRuntimeSettingsFromProject(project);
     newWindow.loadFile(path.join(wallpaper.path, project.file));
     newWindow.webContents.executeJavaScript(`window.project = JSON.parse(${JSON.stringify(JSON.stringify(project))})`); // TODO: call merlin to figure out what happend
+    if(project.wallex.injectLocalStorage) { //injecting key : value pairs into localStorage
+      newWindow.webContents.once("did-navigate-in-page", () => {
+        project.wallex.injectLocalStorage.forEach( (localStoragePair : {key : string, value : string}) => {
+          newWindow.webContents.executeJavaScript(`localStorage.setItem("${localStoragePair.key}", '${localStoragePair.value}')`);
+        }) 
+      });
+    }
+    newWindow.webContents.executeJavaScript(`window.location.reload()`); // reloading the page after injection to make the changes take effect
     const {x: jsOffsetX, y: jsOffsetY, width, height} = screen.bounds;
     if (!runtimeSettings.disableMouseEvents) { mouseEventsNative.createMouseForwarder(newWindow, jsOffsetX, jsOffsetY) }
     newWindow.webContents.executeJavaScript(`window.enableSound = ${!runtimeSettings.disableSound}`);
