@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallex | Wallpaper settings</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="title">Settings</div>
+    <div class="text"><span id="title"></span></div>
+    <hr>
+    <div class="settings-browser">
+    </div>
+
+    <script>
+        const {loadProject} = require('../../lib/utils/loadProject');
+
+        const params = new URLSearchParams(window.location.search);
+        const wallpaperPath = decodeURI(params.get("wallpaper-path"));
+        const project = loadProject(wallpaperPath);
+
+        if (!project) {
+            // handle no project
+        }
+
+        // selectors
+        const wallpaperTitle = document.getElementById('title');
+        const settingsBrowser = document.querySelector('.settings-browser');
+        //
+
+        // component builders
+        const buildBool = (props) => {
+            if (props.type !== 'bool' || !props.text || props.value === undefined) { throw Error('Incomplete component!') }
+            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
+            const { text: title, value } = props;
+            const div = document.createElement('div');
+            div.classList.add('setting', 'bool');
+            const text = document.createElement('div');
+            text.classList.add('text');
+            text.innerHTML = title;
+            const input = document.createElement('input');
+            input.type = "checkbox";
+            input.value = value
+            div.appendChild(text);
+            div.appendChild(input);
+            return div;
+        }
+
+        const buildColor = (props) => {
+            if (props.type !== 'color' || !props.text || props.value === undefined) { throw Error('Incomplete component!') }
+            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
+            const { text: title, value } = props;
+            const div = document.createElement('div');
+            div.classList.add('setting', 'color');
+            const text = document.createElement('div');
+            text.classList.add('text');
+            text.innerHTML = title;
+            const input = document.createElement('input');
+            input.type = "color";
+            input.value = '#' + value.split(' ').map(val => (parseFloat(val) * 255).toString(16).padEnd(2, '0')).join('');
+            div.appendChild(text);
+            div.appendChild(input);
+            return div;
+        }
+
+        const buildSlider = (props) => {
+            if (props.type !== 'slider' || !props.text || props.value === undefined || props.min === undefined || props.max === undefined || props.step === undefined) { throw Error('Incomplete component!') }
+            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
+            const { text: title, min, max, value, step } = props;
+            const div = document.createElement('div');
+            div.classList.add('setting', 'slider');
+            const text = document.createElement('div');
+            text.classList.add('text');
+            text.innerHTML = title;
+            const input = document.createElement('input');
+            input.type = "range";
+            input.min = min;
+            input.max = max;
+            input.value = value;
+            input.step = step;
+            input.addEventListener('change', e => console.log(e.target.value));
+            div.appendChild(text);
+            div.appendChild(input);
+            return div;
+        }
+
+        const buildTextInput = (props) => {
+            if (props.type !== 'textinput' || !props.text || props.value === undefined) { throw Error('Incomplete component!') }
+            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
+            const { text: title, value } = props;
+            const div = document.createElement('div');
+            div.classList.add('setting', 'textinput');
+            const text = document.createElement('div');
+            text.classList.add('text');
+            text.innerHTML = title;
+            const input = document.createElement('input');
+            input.type = "text";
+            input.value = value;
+            div.appendChild(text);
+            div.appendChild(input);
+            return div;
+        }
+
+        const buildCombo = (props) => {
+            if (props.type !== 'combo' || !props.text || props.value === undefined || !props.options) { throw Error('Incomplete component!') }
+            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
+            props.options.forEach(option => {
+                if (option.label === undefined || option.value === undefined) { throw Error('Wrong option!') }
+            });
+            const buildOption = (props) => {
+                const option = document.createElement('option');
+                option.value = props.value;
+                option.innerHTML = props.label;
+                return option;
+            };
+            const { text: title, value } = props;
+            const div = document.createElement('div');
+            div.classList.add('setting', 'combo');
+            const text = document.createElement('div');
+            text.classList.add('text');
+            text.innerHTML = title;
+            const select = document.createElement('select');
+            props.options.forEach(option => {
+                select.appendChild(buildOption(option));
+            });
+            div.appendChild(text);
+            div.appendChild(select);
+            return div;
+        }
+
+        const buildText = (props) => {
+            if (props.type !== 'text' || !props.text) { throw Error('Incomplete component!') }
+            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
+            const { text: title } = props;
+            const div = document.createElement('div');
+            div.classList.add('text-component');
+            const text = document.createElement('div');
+            text.classList.add('text');
+            text.innerHTML = title;
+            div.appendChild(text);
+            return div;
+        }
+        //
+
+        wallpaperTitle.innerHTML = project.title;
+        settingsBrowser.appendChild(buildBool({
+				"condition" : "use_background_image.value",
+				"order" : 102,
+				"text" : "Repeat Background",
+				"type" : "bool",
+				"value" : false
+			}));
+        settingsBrowser.appendChild(buildColor({
+				"order" : 104,
+				"text" : "Background Color",
+				"type" : "color",
+				"value" : "0 1 0"
+			}));
+        settingsBrowser.appendChild(buildSlider({
+				"fraction" : true,
+				"max" : 2,
+				"min" : 0.10000000000000001,
+				"order" : 129,
+				"precision" : 2,
+				"step" : 0.01,
+				"text" : "Bloom Intensity",
+				"type" : "slider",
+				"value" : 0.80000000000000004
+			}));
+        settingsBrowser.appendChild(buildText({
+				"order" : 309,
+				"text" : "ui_label_Message",
+				"type" : "text"
+			}));
+        settingsBrowser.appendChild(buildTextInput({
+				"condition" : "Messagebool.value && !f3Clockbool.value",
+				"order" : 312,
+				"text" : "ui_MessageText",
+				"type" : "textinput",
+				"value" : "MATRIX"
+			}));
+        settingsBrowser.appendChild(buildCombo({
+				"options" : 
+				[
+					{
+						"label" : "Color",
+						"value" : 1
+					},
+					{
+						"label" : "Image",
+						"value" : 2
+					},
+					{
+						"label" : "ImageSlideShow",
+						"value" : 3
+					},
+					{
+						"label" : "Video",
+						"value" : 4
+					}
+				],
+				"order" : 30,
+				"text" : "BackgroundType",
+				"type" : "combo",
+				"value" : 1
+			}));
+    </script>
+</body>
+</html>

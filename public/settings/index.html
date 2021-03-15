@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallex | Settings</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="title">Settings</div>
+    <div class="text">Your wallpaper libary</div>
+    <hr>
+    <div class="wallpaper-browser">
+    </div>
+    <script>
+        const {ipcRenderer} = require('electron');
+        const wallpaperBrowser = document.querySelector('.wallpaper-browser');
+
+        const buildCard = (title, preview, path) => {
+            const div = document.createElement('div');
+            div.classList.add('card');
+            const tint = document.createElement('div');
+            tint.classList.add('tint');
+            tint.innerHTML = title;
+            if (preview) {
+                const img = document.createElement('img');
+                img.classList.add('preview');
+                img.src = preview;
+                img.alt = "wallpaper preview";
+                div.appendChild(img);
+            }
+            div.appendChild(tint);
+            div.addEventListener('click', () => {
+                window.location = `./wallpaper.html?wallpaper-path=${encodeURI(path)}`
+            });
+            return div;
+        }
+
+        ipcRenderer.on('loadWallpapers', (e, wallpapers) => {
+            wallpapers.forEach(wallpaper => {
+                if (!wallpaper || !wallpaper.project || !wallpaper.project.title) { return } // Skip invalid wallpapers
+                const title = wallpaper.project.title.length > 20 ? `${wallpaper.project.title.slice(0, 19)}...` : wallpaper.project.title;
+                const preview = wallpaper.project.preview | null;
+                wallpaperBrowser.appendChild(buildCard(title, wallpaper.project.preview ? `${wallpaper.path}\\${wallpaper.project.preview}` : null, wallpaper.path));
+            });
+        });
+    </script>
+</body>
+</html>
