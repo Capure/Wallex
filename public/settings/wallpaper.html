@@ -10,19 +10,64 @@
 <body>
     <div class="title">Settings</div>
     <div class="text"><span id="title"></span></div>
+    <div class="settings-arrow-back">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#FFFFFF" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5z"/>
+        </svg>
+    </div>
     <hr>
     <div class="settings-browser">
     </div>
 
     <script>
+        const {ipcRenderer} = require('electron');
         const {loadProject} = require('../../lib/utils/loadProject');
+        const {saveProject} = require('../../lib/utils/saveProject');
 
         const params = new URLSearchParams(window.location.search);
         const wallpaperPath = decodeURI(params.get("wallpaper-path"));
         const project = loadProject(wallpaperPath);
 
+        document.querySelector('.settings-arrow-back').onclick = () => {window.location = './index.html'}
+
         if (!project) {
             // handle no project
+        }
+
+        const isTranslationOn = project.general && project.general.localization ? true : false;
+
+        const translateText = (inputText) => {
+            if (!inputText.startsWith('ui_')) { return inputText }
+            const preDefined = {
+                "ui_browse_properties_scheme_color": "Scheme color"
+            }
+            if (isTranslationOn) {
+                const localization = project.general.localization["en-us"]; // Others are not supported ¯\_(ツ)_/¯
+                return localization[inputText] ? localization[inputText] : preDefined[inputText];
+            }
+            return preDefined[inputText] ? preDefined[inputText] : inputText;
+        }
+
+        const checkCondition = (condition) => {
+            const propPairs = [];
+    
+            for (const key in project.general.properties) {
+                propPairs.push({
+                    key: key,
+                    value: project.general.properties[key]
+                });
+            }
+            propPairs
+            .forEach(propItem => {
+                const regex = new RegExp(`([! ]${propItem.key}[. ])`, 'gm');
+                condition = (" " + condition).replaceAll(regex, ` project.general.properties.${propItem.key}`);
+            });
+            try {
+                return eval(condition);
+            } catch (e) {
+                console.warn(`Condition skiped because of: ${e}`);
+                return false;
+            }
         }
 
         // selectors
@@ -31,81 +76,101 @@
         //
 
         // component builders
-        const buildBool = (props) => {
+        const buildBool = (propPair) => {
+            const {value: props} = propPair;
             if (props.type !== 'bool' || !props.text || props.value === undefined) { throw Error('Incomplete component!') }
-            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
             const { text: title, value } = props;
             const div = document.createElement('div');
             div.classList.add('setting', 'bool');
             const text = document.createElement('div');
             text.classList.add('text');
-            text.innerHTML = title;
+            text.innerHTML = translateText(title);
             const input = document.createElement('input');
             input.type = "checkbox";
-            input.value = value
+            input.checked = value
             div.appendChild(text);
             div.appendChild(input);
+            input.onchange = () => {
+                propPair.update({...propPair, value: {...props, value: input.checked}});
+            }
             return div;
         }
 
-        const buildColor = (props) => {
+        const buildColor = (propPair) => {
+            const {value: props} = propPair;
             if (props.type !== 'color' || !props.text || props.value === undefined) { throw Error('Incomplete component!') }
-            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
             const { text: title, value } = props;
             const div = document.createElement('div');
             div.classList.add('setting', 'color');
             const text = document.createElement('div');
             text.classList.add('text');
-            text.innerHTML = title;
+            text.innerHTML = translateText(title);
             const input = document.createElement('input');
             input.type = "color";
             input.value = '#' + value.split(' ').map(val => (parseFloat(val) * 255).toString(16).padEnd(2, '0')).join('');
             div.appendChild(text);
             div.appendChild(input);
+            input.onchange = () => {
+                propPair.update({...propPair, value: {...props, value: (() => {
+                    const hexAll = input.value.slice(1);
+                    const hexR = hexAll.slice(0, 2);
+                    const hexG = hexAll.slice(2, 4);
+                    const hexB = hexAll.slice(4, 6);
+                    const { r, g, b } = { r: parseInt(hexR, 16) / 255, g: parseInt(hexG, 16) / 255, b: parseInt(hexB, 16) / 255 };
+                    return `${r} ${g} ${b}`;
+                })()}});
+            }
             return div;
         }
 
-        const buildSlider = (props) => {
-            if (props.type !== 'slider' || !props.text || props.value === undefined || props.min === undefined || props.max === undefined || props.step === undefined) { throw Error('Incomplete component!') }
-            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
+        const buildSlider = (propPair) => {
+            const {value: props} = propPair;
+            if (props.type !== 'slider' || !props.text || props.value === undefined || props.min === undefined || props.max === undefined) { throw Error('Incomplete component!') }
             const { text: title, min, max, value, step } = props;
             const div = document.createElement('div');
             div.classList.add('setting', 'slider');
             const text = document.createElement('div');
             text.classList.add('text');
-            text.innerHTML = title;
+            text.innerHTML = translateText(title);
             const input = document.createElement('input');
             input.type = "range";
             input.min = min;
             input.max = max;
             input.value = value;
-            input.step = step;
-            input.addEventListener('change', e => console.log(e.target.value));
+            if (step) {
+                input.step = step;
+            }
             div.appendChild(text);
             div.appendChild(input);
+            input.onchange = () => {
+                propPair.update({...propPair, value: {...props, value: input.value}});
+            }
             return div;
         }
 
-        const buildTextInput = (props) => {
+        const buildTextInput = (propPair) => {
+            const {value: props} = propPair;
             if (props.type !== 'textinput' || !props.text || props.value === undefined) { throw Error('Incomplete component!') }
-            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
             const { text: title, value } = props;
             const div = document.createElement('div');
             div.classList.add('setting', 'textinput');
             const text = document.createElement('div');
             text.classList.add('text');
-            text.innerHTML = title;
+            text.innerHTML = translateText(title);
             const input = document.createElement('input');
             input.type = "text";
             input.value = value;
             div.appendChild(text);
             div.appendChild(input);
+            input.onchange = () => {
+                propPair.update({...propPair, value: {...props, value: input.value}});
+            }
             return div;
         }
 
-        const buildCombo = (props) => {
+        const buildCombo = (propPair) => {
+            const {value: props} = propPair;
             if (props.type !== 'combo' || !props.text || props.value === undefined || !props.options) { throw Error('Incomplete component!') }
-            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
             props.options.forEach(option => {
                 if (option.label === undefined || option.value === undefined) { throw Error('Wrong option!') }
             });
@@ -120,92 +185,91 @@
             div.classList.add('setting', 'combo');
             const text = document.createElement('div');
             text.classList.add('text');
-            text.innerHTML = title;
+            text.innerHTML = translateText(title);
             const select = document.createElement('select');
             props.options.forEach(option => {
                 select.appendChild(buildOption(option));
             });
+            select.selectedIndex = props.options.indexOf(props.options.find(option => option.value === props.value));
             div.appendChild(text);
             div.appendChild(select);
+            select.onchange = () => {
+                propPair.update({...propPair, value: {...props, value: select.opions[select.selectedIndex].value}});
+            }
             return div;
         }
 
-        const buildText = (props) => {
+        const buildText = (propPair) => {
+            const {value: props} = propPair;
             if (props.type !== 'text' || !props.text) { throw Error('Incomplete component!') }
-            // if (props.condition) { if (!eval(props.condition)) { return } } // TODO: support this
             const { text: title } = props;
             const div = document.createElement('div');
             div.classList.add('text-component');
             const text = document.createElement('div');
             text.classList.add('text');
-            text.innerHTML = title;
+            text.innerHTML = translateText(title);
             div.appendChild(text);
             return div;
         }
         //
 
         wallpaperTitle.innerHTML = project.title;
-        settingsBrowser.appendChild(buildBool({
-				"condition" : "use_background_image.value",
-				"order" : 102,
-				"text" : "Repeat Background",
-				"type" : "bool",
-				"value" : false
-			}));
-        settingsBrowser.appendChild(buildColor({
-				"order" : 104,
-				"text" : "Background Color",
-				"type" : "color",
-				"value" : "0 1 0"
-			}));
-        settingsBrowser.appendChild(buildSlider({
-				"fraction" : true,
-				"max" : 2,
-				"min" : 0.10000000000000001,
-				"order" : 129,
-				"precision" : 2,
-				"step" : 0.01,
-				"text" : "Bloom Intensity",
-				"type" : "slider",
-				"value" : 0.80000000000000004
-			}));
-        settingsBrowser.appendChild(buildText({
-				"order" : 309,
-				"text" : "ui_label_Message",
-				"type" : "text"
-			}));
-        settingsBrowser.appendChild(buildTextInput({
-				"condition" : "Messagebool.value && !f3Clockbool.value",
-				"order" : 312,
-				"text" : "ui_MessageText",
-				"type" : "textinput",
-				"value" : "MATRIX"
-			}));
-        settingsBrowser.appendChild(buildCombo({
-				"options" : 
-				[
-					{
-						"label" : "Color",
-						"value" : 1
-					},
-					{
-						"label" : "Image",
-						"value" : 2
-					},
-					{
-						"label" : "ImageSlideShow",
-						"value" : 3
-					},
-					{
-						"label" : "Video",
-						"value" : 4
-					}
-				],
-				"order" : 30,
-				"text" : "BackgroundType",
-				"type" : "combo",
-				"value" : 1
-			}));
+
+        if (!project.general || !project.general.properties) {
+            const div = document.createElement('h3');
+            div.innerHTML = "No properties!";
+            settingsBrowser.append(div)
+        } else {
+            let propPairs = [];
+    
+            for (const key in project.general.properties) {
+                propPairs.push({
+                    key: key,
+                    value: project.general.properties[key],
+                    update(newProp) {
+                        propPairs = propPairs.map(oldPropPair => oldPropPair.key === this.key ? newProp : oldPropPair);
+                        project.general.properties = (() => {
+                            const newProps = {};
+                            propPairs.forEach(propPair => {
+                                newProps[propPair.key] = {...propPair.value};
+                            });
+                            return newProps;
+                        })();
+                        saveProject(wallpaperPath, project);
+                        ipcRenderer.send('update-props');
+                    }
+                });
+            }
+    
+            propPairs
+            .sort((a, b) => a.value.order - b.value.order)
+            .forEach(propPair => {
+                if (propPair.value.condition) { if (!checkCondition(propPair.value.condition)) { return } }
+                switch (propPair.value.type) {
+                    case 'bool':
+                        settingsBrowser.appendChild(buildBool(propPair));
+                        break;
+                    case 'color':
+                        settingsBrowser.appendChild(buildColor(propPair));
+                        break;
+                    case 'slider':
+                        settingsBrowser.appendChild(buildSlider(propPair));
+                        break;
+                    case 'text':
+                        settingsBrowser.appendChild(buildText(propPair));
+                        break;
+                    case 'textinput':
+                        settingsBrowser.appendChild(buildTextInput(propPair));
+                        break;
+                    case 'combo':
+                        settingsBrowser.appendChild(buildCombo(propPair));
+                        break;
+                    default:
+                        console.error(propPair, "Unknown component!");
+                        break;
+                }
+            });
+        }
     </script>
 </body>
 </html>

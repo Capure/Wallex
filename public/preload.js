@@ -1,20 +1,37 @@
 // Emulates the wallpaper engine api
+const {ipcRenderer} = require('electron');
+
+let videoSrc = null;
+let project = null;
+let enableSound = null;
+
+ipcRenderer.on('video-src', (_, pathToVideo) => {
+  videoSrc = pathToVideo;
+});
+
+ipcRenderer.on('load-project', (_, projectToSet) => {
+  project = projectToSet;
+});
+
+ipcRenderer.on('enable-sound', (_, enableSoundToSet) => {
+  enableSound = enableSoundToSet;
+});
+
 window.wallpaperRegisterAudioListener = (wallpaperAudioListener) => {
   window.wallpaperAudioListener = wallpaperAudioListener;
   window.dispatchEvent(new Event('audioListenerLoaded'));
 }
 
-window.enableSound = null;
 
 window.addEventListener('audioListenerLoaded', () => {
-  if (window.enableSound === null) {
+  if (enableSound === null) {
     const waitForEnableSound = setInterval(() => {
-      if (window.enableSound !== null) { 
+      if (enableSound !== null) { 
         window.dispatchEvent(new Event('audioListenerLoaded'));
         clearInterval(waitForEnableSound);
       }
     }, 20);
-  } else if (window.enableSound) {
+  } else if (enableSound) {
     window.dispatchEvent(new Event('enableAudio'));
   }
 });
@@ -59,14 +76,14 @@ window.addEventListener('load', () => {
 
 window.addEventListener('DOMContentLoaded', () => {
     const waitForWallpaper = setInterval(() => {
-        if (window.noproject) {
-            clearInterval(waitForWallpaper);
+        if (window.wallpaperPropertyListener === undefined || window.wallpaperPropertyListener.applyUserProperties === undefined || project === null) {
             return;
         }
-        if (window.wallpaperPropertyListener === undefined || window.wallpaperPropertyListener.applyUserProperties === undefined || window.project === undefined) {
-            return;
+        if (videoSrc) {
+          project.general.properties = {...project.general.properties, video: videoSrc};
         }
-        window.wallpaperPropertyListener.applyUserProperties(window.project.general.properties);
+        ipcRenderer.on('update-props', () => window.wallpaperPropertyListener.applyUserProperties(project.general.properties)); // Allows wallex to update the props while the wallpaper is running
+        window.wallpaperPropertyListener.applyUserProperties(project.general.properties);
         clearInterval(waitForWallpaper);
     }, 100);
 })

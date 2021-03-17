@@ -1,0 +1,14 @@
+html, body{
+    /*background-color: aliceblue;*/
+    overflow: hidden;
+    margin: 0px;
+    border: 0px;
+}
+.myDiv{
+    /*text-align: center;*/
+    color: aqua;
+}
+.bajojajo{
+    width: 100vw;
+    height: 100vh;
+}

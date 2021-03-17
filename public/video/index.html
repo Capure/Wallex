@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <video id="vid1">
+    </video>
+
+    <script>
+        window.wallpaperPropertyListener = {
+            applyUserProperties(props) {
+                const videoSrc = document.createElement('source');
+                videoSrc.src = props.video;
+                const video = document.getElementById("vid1");
+                video.appendChild(videoSrc);
+                video.setAttribute("height", window.innerHeight + "px");
+                video.setAttribute("width", window.innerWidth + "px");
+                video.muted = props.sound ? !props.sound.value : true;
+                video.loop = 1;
+                video.play();
+            }
+        }
+    </script>
+</body>
+</html>

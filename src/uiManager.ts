@@ -55,8 +55,8 @@ export class UiManager extends EventEmitter {
       dialog.showMessageBox({ title: 'Wallex', message: 'The settings window is already open!' });
     } else {
       this.settingsWindow = new BrowserWindow({
-        width: 1000, // Initial value
-        height: 800, // Initial value
+        width: 1000,
+        height: 800,
         autoHideMenuBar: true,
         resizable: false,
         fullscreenable: false,
@@ -68,9 +68,10 @@ export class UiManager extends EventEmitter {
           contextIsolation: false
         }
       });
-      this.settingsWindow.loadFile(path.join("..", "public", "settings", "index.html"));
+      this.settingsWindow.loadFile(path.join(__dirname, "..", "public", "settings", "index.html"));
       this.settingsWindow.on('close', () => { this.settingsWindow = null });
       this.settingsWindow.webContents.on('dom-ready', () => this.reloadWallpaper());
+      ipcMain.on('update-props', () => this.emit('update-props'));
     }
   }
 }

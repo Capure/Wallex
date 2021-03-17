@@ -14,6 +14,8 @@ class Wallex {
   private settingsManager: SettingsManager | null = null;
 
   constructor() {
+    const gotTheLock = app.requestSingleInstanceLock();
+    if (!gotTheLock) { app.quit() }
     app.on('ready', () => {
       this.screenManager.init(screen.getAllDisplays());
       this.browserWindowManager = new BrowserWindowManager(this.screenManager);
@@ -42,6 +44,7 @@ class Wallex {
           this.browserWindowManager.createNewWindow(screenId, wallpaper);
         }
       });
+      this.uiManager.on('update-props', () => this.browserWindowManager?.refreshAllProps());
     });
     app.on('window-all-closed', () => {}); // Overwrites the default exit behaviour
   }

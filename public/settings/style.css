@@ -107,7 +107,7 @@ hr {
     position: relative;
 }
 
-.settings-browser .bool, .color, .slider, .textinput, .combo, .text-component {
+.settings-browser .bool, .color, .slider, .textinput, .combo {
     height: 80px;
 }
 
@@ -242,4 +242,31 @@ hr {
 .settings-browser .text-component {
     padding-left: 0px;
     text-align: center;
+}
+
+.settings-browser .text-component * {
+    margin: 0px !important;
+}
+
+.settings-browser .text-component small {
+    font-size: 15px;
+}
+
+.settings-browser .text-component br {
+    display: none;
+}
+
+.settings-arrow-back {
+    position: fixed;
+    top: 45px;
+    right: 60px;
+    height: 60px;
+    width: 60px;
+    cursor: pointer;
+}
+
+.settings-arrow-back svg {
+    font-size: 60px;
+    height: 100%;
+    width: 100%;
 }
