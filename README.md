@@ -2,9 +2,9 @@
 
 An open-source alternative to [Wallpaper Engine](https://www.wallpaperengine.io/en).
 
-Currently, there is some basic support for the Wallpaper Engine API.
+Wallex is mostly compatible with the Wallpaper Engine API.
 
-In order for the wallpaper to work with wallex it must be of type web.
+In order for the wallpaper to work with wallex it must be of type web or video.
 
 This project is based on: [electron-wallpaper](https://github.com/cjsewell/electron-wallpaper)
 
