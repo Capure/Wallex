@@ -23,6 +23,7 @@
 
 #include "./electronwallpaper.h"
 #include "./mouseevents.h"
+#include "./cpusaver.h"
 #include "./output.h"
 
 namespace bindings {
@@ -38,6 +39,7 @@ namespace bindings {
   using electronwallpaper::AttachWindow;
   using mouseevents::createMouseForwarder;
   using Output::CreateError;
+  using cpusaver::AttachSaver;
 
   void AttachWindowExport(const CallbackInfo& info) {
     Env env = info.Env();
@@ -73,15 +75,15 @@ namespace bindings {
     Env env = info.Env();
     
     if (info.Length() < 3) {
-      CreateError(env, "move expects 3 arguments.").ThrowAsJavaScriptException();
+      CreateError(env, "mouseForwarder expects 5 arguments.").ThrowAsJavaScriptException();
     } else if (!info[0].IsObject()) {
-      CreateError(env, "move expects first argument to be a window handle buffer").ThrowAsJavaScriptException();
+      CreateError(env, "mouseForwarder expects first argument to be a window handle buffer").ThrowAsJavaScriptException();
     }
     if (!info[1].IsNumber()) {
-      CreateError(env, "move expects the second argument to be a number(x).").ThrowAsJavaScriptException();
+      CreateError(env, "mouseForwarder expects the second argument to be a number(x).").ThrowAsJavaScriptException();
     }
     if (!info[2].IsNumber()) {
-      CreateError(env, "move expects the third argument to be a number(y).").ThrowAsJavaScriptException();
+      CreateError(env, "mouseForwarder expects the third argument to be a number(y).").ThrowAsJavaScriptException();
     }
 
     unsigned char* windowHandleBuffer = info[0].As<Uint8Array>().Data();
@@ -91,9 +93,40 @@ namespace bindings {
 
     createMouseForwarder(windowHandleBuffer, offsetX, offsetY);
   }
+  void attachCpuSaverExport(const CallbackInfo& info) {
+    Env env = info.Env();
+    
+    if (info.Length() < 3) {
+      CreateError(env, "CpuSaver expects 5 arguments.").ThrowAsJavaScriptException();
+    } else if (!info[0].IsObject()) {
+      CreateError(env, "CpuSaver expects first argument to be a window handle buffer").ThrowAsJavaScriptException();
+    }
+    if (!info[1].IsNumber()) {
+      CreateError(env, "CpuSaver expects the second argument to be a number(x).").ThrowAsJavaScriptException();
+    }
+    if (!info[2].IsNumber()) {
+      CreateError(env, "CpuSaver expects the third argument to be a number(y).").ThrowAsJavaScriptException();
+    }
+    if (!info[3].IsNumber()) {
+      CreateError(env, "CpuSaver expects the fourth argument to be a number(x).").ThrowAsJavaScriptException();
+    }
+    if (!info[4].IsNumber()) {
+      CreateError(env, "CpuSaver expects the fifth argument to be a number(y).").ThrowAsJavaScriptException();
+    }
+
+    unsigned char* windowHandleBuffer = info[0].As<Uint8Array>().Data();
+
+    int offsetX = info[1].ToNumber();
+    int offsetY = info[2].ToNumber();
+    int Width = info[3].ToNumber();
+    int Height = info[4].ToNumber();
+
+    AttachSaver(windowHandleBuffer, offsetX, offsetY, Width, Height);
+  }
   Object Initialize(Env env, Object exports) {
     exports.Set(String::New(env, "attachWindow"), Function::New(env, AttachWindowExport));
     exports.Set(String::New(env, "createMouseForwarder"), Function::New(env, createMouseForwarderExport));
+    exports.Set(String::New(env, "attachCpuSaver"), Function::New(env, attachCpuSaverExport));
     return exports;
   }
 }  // namespace bindings

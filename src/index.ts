@@ -27,6 +27,16 @@ class Wallex {
         }
         app.quit();
       });
+      this.uiManager.on('pause', () => {
+        if (this.browserWindowManager) {
+          this.browserWindowManager.minimizeAll();
+        }
+      });
+      this.uiManager.on('unpause', () => {
+        if (this.browserWindowManager) {
+          this.browserWindowManager.unminimizeAll();
+        }
+      });
       this.uiManager.on('clearWallpaper', (screenId: number) => {
         if (this.browserWindowManager) {
           this.browserWindowManager.destroyWindowByScreenId(screenId);

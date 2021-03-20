@@ -27,8 +27,6 @@ export class UiManager extends EventEmitter {
     if (reloadManager) {this.wallpaperManager.reload()}
     const wallpapers = this.wallpaperManager.getWallpapers();
     this.settingsWindow?.webContents.send('loadWallpapers', wallpapers);
-    // this.settingsWindow?.webContents.executeJavaScript(`window.wallpapers = JSON.parse(${JSON.stringify(JSON.stringify(wallpapers))})`);
-    // this.settingsWindow?.webContents.executeJavaScript(`window.dispatchEvent(new Event("wallpapersLoaded"))`);
   }
   private createTray() {
     this.tray = new Tray(path.join(__dirname, '../public/logo.png'));
@@ -46,6 +44,8 @@ export class UiManager extends EventEmitter {
     });
     template.push({ label: 'Wallpapers Folder', click: this.openWallpapersFolder });
     template.push({ label: 'Open settings', click: this.openSettingsWindow });
+    template.push({ label: 'Pause', click: () => this.emit('pause') });
+    template.push({ label: 'Unpause', click: () => this.emit('unpause') });
     template.push({ label: 'Quit', click: () => this.emit('quit') });
     this.tray.setContextMenu(Menu.buildFromTemplate(template));
     this.tray.setToolTip("Wallex");

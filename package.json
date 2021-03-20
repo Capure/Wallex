@@ -1,7 +1,7 @@
 {
   "name": "wallex",
   "description": "An open-source Wallpaper engine alternative.",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "license": "MIT",
   "gypfile": true,
   "author": "Capure",

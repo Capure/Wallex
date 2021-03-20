@@ -23,7 +23,7 @@
         [
           "OS==\"win\"",
           {
-            "sources": ["native/electronwallpaper_win.cc", "native/mouseevents.cc"]
+            "sources": ["native/electronwallpaper_win.cc", "native/mouseevents.cc", "native/cpusaver.cc"]
           }
         ],
         [

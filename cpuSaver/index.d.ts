@@ -1,0 +1,1 @@
+export function attachCpuSaver(window: Electron.BrowserWindow, jsOffsetX: number, jsOffsetY: number, Width: number, Height: number): void;

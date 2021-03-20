@@ -1,8 +1,9 @@
 import {BrowserWindow, dialog} from 'electron';
 import electronWallpaper from '../electronWallpaper';
+import mouseEventsNative from '../mouseEvents';
+import attachCpuSaver from '../cpuSaver';
 import path from 'path';
 import { Wallpaper } from './interfaces/wallpaper';
-import mouseEventsNative from '../mouseEvents';
 import { ScreenManager } from './screenManager';
 import { loadProject } from './utils/loadProject';
 
@@ -59,9 +60,11 @@ export class BrowserWindowManager {
       newWindow.webContents.reload(); // reloading the page after injection to make the changes take effect
     }
     const {x: jsOffsetX, y: jsOffsetY, width, height} = screen.bounds;
-    if (!runtimeSettings.disableMouseEvents) { mouseEventsNative.createMouseForwarder(newWindow, jsOffsetX, jsOffsetY) }
+    const {width: safeWidth, height: safeHeight} = screen.workAreaSize;
     newWindow.webContents.send('enable-sound', !runtimeSettings.disableSound);
     electronWallpaper.attachWindow(newWindow, this.screenManager.getOffsetX(screenId), jsOffsetY, width, height);
+    if (!runtimeSettings.disableMouseEvents) { mouseEventsNative.createMouseForwarder(newWindow, jsOffsetX, jsOffsetY) }
+    attachCpuSaver.attachCpuSaver(newWindow, jsOffsetX, jsOffsetY, safeWidth, safeHeight);
     this.windows.set(screenId, { window: newWindow, wallpaperPath: wallpaper.path });
   }
 
@@ -73,6 +76,25 @@ export class BrowserWindowManager {
         if (!project) { throw Error(`Project not found!\nScreen: ${screen.id}`) }
         wallpaperWindow.window.webContents.send('load-project', project);
         wallpaperWindow.window.webContents.send('update-props');
+      }
+    });
+  }
+
+  public minimizeAll() {
+    this.screenManager.getScreens().forEach(screen => {
+      const wallpaperWindow = this.windows.get(screen.id);
+      if (wallpaperWindow) {
+        wallpaperWindow.window.minimize();
+      }
+    });
+  }
+
+  public unminimizeAll() {
+    this.screenManager.getScreens().forEach(screen => {
+      const wallpaperWindow = this.windows.get(screen.id);
+      if (wallpaperWindow) {
+        // wallpaperWindow.window.show();
+        wallpaperWindow.window.restore()
       }
     });
   }
