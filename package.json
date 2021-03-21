@@ -17,6 +17,7 @@
       "public/",
       "electronWallpaper/",
       "mouseEvents",
+      "cpuSaver/",
       "build/"
     ],
     "directories": {
