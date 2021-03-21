@@ -80,25 +80,6 @@ export class BrowserWindowManager {
     });
   }
 
-  public minimizeAll() {
-    this.screenManager.getScreens().forEach(screen => {
-      const wallpaperWindow = this.windows.get(screen.id);
-      if (wallpaperWindow) {
-        wallpaperWindow.window.minimize();
-      }
-    });
-  }
-
-  public unminimizeAll() {
-    this.screenManager.getScreens().forEach(screen => {
-      const wallpaperWindow = this.windows.get(screen.id);
-      if (wallpaperWindow) {
-        // wallpaperWindow.window.show();
-        wallpaperWindow.window.restore()
-      }
-    });
-  }
-
   public destroyWindowByScreenId(id: number) {
     const screen = this.screenManager.getScreenById(id);
     if (!screen) { throw Error("Screen not found!") }

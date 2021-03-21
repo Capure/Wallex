@@ -44,8 +44,6 @@ export class UiManager extends EventEmitter {
     });
     template.push({ label: 'Wallpapers Folder', click: this.openWallpapersFolder });
     template.push({ label: 'Open settings', click: this.openSettingsWindow });
-    template.push({ label: 'Pause', click: () => this.emit('pause') });
-    template.push({ label: 'Unpause', click: () => this.emit('unpause') });
     template.push({ label: 'Quit', click: () => this.emit('quit') });
     this.tray.setContextMenu(Menu.buildFromTemplate(template));
     this.tray.setToolTip("Wallex");
