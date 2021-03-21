@@ -8,7 +8,7 @@
 
 namespace mouseevents {
   HHOOK _hook;
-  HANDLE _hThread;
+  HANDLE mouse_hook_thread;
   HWND slv_32;
   BOOL alreadyHooked = FALSE;
 
@@ -16,23 +16,12 @@ namespace mouseevents {
     int x;
     int y;
     HWND hwnd;
-    BOOL stale = FALSE;
-    // ^ This is a memory leak
-    // every time you spawn a new wallpaper
-    // this vector gets bigger
-    // you cannot just delete the entry
-    // cuz you will get a seg fault thanks to multiple threads accessing this vector at once
-    // so one of them can still be using a pointer to the element you just deleted
-    // honestly it's not that big of a deal cuz at the end of the day
-    // thoes wallpapers are using electron
-    // so you have too much memory anyways
   };
 
   std::vector<EventData>* eventData = new std::vector<EventData>();
 
   void Move(int x, int y) {
     for (auto i : *eventData) {
-      if (i.stale) { continue; } // This could slow you down after a while
       LPARAM mousePosWallpaper = MAKELPARAM(x - i.x, y - i.y);
       PostMessageA(i.hwnd, WM_MOUSEMOVE,0 , mousePosWallpaper);
     }
@@ -40,7 +29,6 @@ namespace mouseevents {
 
   void LMB_Down(int x, int y) {
     for (auto i : *eventData) {
-      if (i.stale) { continue; } // This could slow you down after a while
       LPARAM mousePosWallpaper = MAKELPARAM(x - i.x, y - i.y);
       PostMessageA(i.hwnd, WM_LBUTTONDOWN, 0, mousePosWallpaper);
     }
@@ -48,7 +36,6 @@ namespace mouseevents {
 
   void LMB_Up(int x, int y) {
     for (auto i : *eventData) {
-      if (i.stale) { continue; } // This could slow you down after a while
       LPARAM mousePosWallpaper = MAKELPARAM(x - i.x, y - i.y);
       PostMessageA(i.hwnd, WM_LBUTTONUP, 0, mousePosWallpaper);
     }
@@ -83,9 +70,11 @@ namespace mouseevents {
                                 DWORD         dwEventThread,
                                 DWORD         dwmsEventTime) {
       if ( idObject == OBJID_WINDOW && idChild == CHILDID_SELF ) {
-        for (int i = 0; i< eventData->size(); i++) {
+        for (int i = 0; i< eventData->size(); i++) { // +
           if ((*eventData)[i].hwnd == hwnd){
-            (*eventData)[i].stale = TRUE;
+            SuspendThread(mouse_hook_thread);
+            eventData->erase(eventData->begin() + i);
+            ResumeThread(mouse_hook_thread);
           }
         }
       }
@@ -139,7 +128,7 @@ namespace mouseevents {
 
   void startMouseEvents() {
     DWORD dwThreadID;
-    _hThread = CreateThread(NULL, 0, MouseHookThread, NULL, 0, &dwThreadID);
+    mouse_hook_thread = CreateThread(NULL, 0, MouseHookThread, NULL, 0, &dwThreadID);
   }
 
   void createMouseForwarder(unsigned char* handleBuffer, int offsetX, int offsetY) {
