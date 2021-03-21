@@ -4,7 +4,6 @@
 
 namespace cpusaver {
     RECT rect;
-    HANDLE thHandle;
     DWORD thId;
     BOOL isListeningForExit = FALSE;
 
@@ -25,30 +24,11 @@ namespace cpusaver {
 
     struct WindowDataPair {
         HWND hwnd;
+        HANDLE saver_thread;
         CpuSaverThreadData* data;
-            // ^ This is a memory leak
-            // every time you spawn a new wallpaper
-            // a new CpuSaverThreadData object is created
-            // you cannot just use delete and free the memory
-            // cuz you will get a seg fault thanks to multiple threads accessing this object at once
-            // so one of them can still be using a pointer to the object you just deleted
-            // honestly it's not that big of a deal cuz at the end of the day
-            // thoes wallpapers are using electron
-            // so you have too much memory anyways 
     };
 
     std::vector<WindowDataPair> openWindows;
-    // ^ This is also a memory leak
-    // it just grows and never gets smaller
-    // same reason as above
-
-    void setAsClosed(HWND hwnd) {
-        for (int i = 0; i < openWindows.size(); i++) {
-            if (openWindows[i].hwnd == hwnd) {
-                openWindows[i].data->windowIsOpen = FALSE;
-            }
-        }
-    }
 
     void Minimize(HWND hwnd) {
         WINDOWPLACEMENT window_placement;
@@ -103,7 +83,13 @@ namespace cpusaver {
                                 DWORD         dwEventThread,
                                 DWORD         dwmsEventTime) {
       if ( idObject == OBJID_WINDOW && idChild == CHILDID_SELF ) {
-        setAsClosed(hwnd);
+        for (int i = 0; i < openWindows.size(); i++) {
+            if (openWindows[i].hwnd == hwnd) {
+                TerminateThread(openWindows[i].saver_thread, NULL);
+                delete openWindows[i].data;
+                openWindows.erase(openWindows.begin() + i);
+            }
+        }
       }
     }
 
@@ -155,14 +141,14 @@ namespace cpusaver {
         cpuSaverData->main_window_size.height = SafeHeight;
         cpuSaverData->offset_x = OffsetX;
         cpuSaverData->offset_y = OffsetY;
-        WindowDataPair windowDataPair;
-        windowDataPair.hwnd = hwnd;
-        windowDataPair.data = cpuSaverData;
-        openWindows.push_back(windowDataPair);
         if (!isListeningForExit) {
             DWORD dThID;
             CreateThread(NULL, NULL, ListenForWindowExit, NULL, NULL, &dThID);
         }
-        thHandle = CreateThread(NULL, NULL, CpuSaverThread, (LPVOID)cpuSaverData, NULL, &thId);
+        HANDLE saver_thread = CreateThread(NULL, NULL, CpuSaverThread, (LPVOID)cpuSaverData, NULL, &thId);
+        WindowDataPair windowDataPair;
+        windowDataPair.hwnd = hwnd;
+        windowDataPair.data = cpuSaverData;
+        openWindows.push_back(windowDataPair);
     }
 }
