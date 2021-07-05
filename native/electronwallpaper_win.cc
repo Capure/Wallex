@@ -14,72 +14,70 @@
  * limitations under the License.
  *
  * ---------------------------------------------------------------
- *  
+ *
  * This file was modified on March the 6th 2021 by Kacper Stolarek
- * 
-*/
+ *
+ */
 
 #include "./electronwallpaper.h"
 
-#include <windows.h>
 #include <iostream>
+#include <windows.h>
 
 namespace electronwallpaper {
-  // Message to Progman to spawn a WorkerW
-  int WM_SPAWN_WORKER = 0x052C;
+// Message to Progman to spawn a WorkerW
+int WM_SPAWN_WORKER = 0x052C;
 
-  // TODO(robin): Use the EnumWindows callback
-  // instead of a global
-  HWND workerw = NULL;
+// TODO(robin): Use the EnumWindows callback
+// instead of a global
+HWND workerw = NULL;
 
-  // Window enumerator that will set the
-  // window handle for the WorkerW that is the next
-  // sibling to SHELLDLL_DefView
-  BOOL CALLBACK FindWorkerW(HWND hwnd, LPARAM param) {
-    HWND shelldll = FindWindowEx(hwnd, NULL, "SHELLDLL_DefView", NULL);
+// Window enumerator that will set the
+// window handle for the WorkerW that is the next
+// sibling to SHELLDLL_DefView
+BOOL CALLBACK FindWorkerW(HWND hwnd, LPARAM param) {
+  HWND shelldll = FindWindowExA(hwnd, NULL, "SHELLDLL_DefView", NULL);
 
-    if (shelldll) {
-      workerw = FindWindowEx(NULL, hwnd, "WorkerW", NULL);
-      return FALSE;
-    }
-
-    return TRUE;
+  if (shelldll) {
+    workerw = FindWindowExA(NULL, hwnd, "WorkerW", NULL);
+    return FALSE;
   }
 
-  void AttachWindow(unsigned char* handleBuffer, int OffsetX, int OffsetY, int Width, int Height) {
-    LONG_PTR handle = *reinterpret_cast<LONG_PTR*>(handleBuffer);
-    HWND hwnd = (HWND)(LONG_PTR)handle;
+  return TRUE;
+}
 
-    HWND progman = FindWindow("Progman", NULL);
-    LRESULT result = SendMessageTimeout(
-      progman,
-      WM_SPAWN_WORKER,
-      NULL,
-      NULL,
-      SMTO_NORMAL,
-      1000,
-      NULL);
+void AttachWindow(unsigned char *handleBuffer, int OffsetX, int OffsetY,
+                  int Width, int Height) {
+  LONG_PTR handle = *reinterpret_cast<LONG_PTR *>(handleBuffer);
+  HWND hwnd = (HWND)(LONG_PTR)handle;
 
-    if (!result) {
-      // TODO(robin): GetLastError() and handle properly
-    }
+  AttachWindow(hwnd, OffsetX, OffsetY, Width, Height);
+}
 
+void AttachWindow(HWND hwnd, int OffsetX, int OffsetY, int Width, int Height) {
+  HWND progman = FindWindowA("Progman", NULL);
+  LRESULT result = SendMessageTimeout(progman, WM_SPAWN_WORKER, NULL, NULL,
+                                      SMTO_NORMAL, 1000, NULL);
 
-    // TODO(robin): Handle return value of EnumWindows
-    EnumWindows(&FindWorkerW, reinterpret_cast<LPARAM>(&workerw));
-
-    // Update style of the Window we want to attach
-    SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_LAYERED);
-    SetParent(hwnd, workerw);
-    SetWindowPos(hwnd, NULL, OffsetX, OffsetY, Width, Height, 0);
+  if (!result) {
+    // TODO(robin): GetLastError() and handle properly
   }
 
-  void DetachWindow(unsigned char* handleBuffer) {
-    LONG_PTR handle = *reinterpret_cast<LONG_PTR*>(handleBuffer);
-    HWND hwnd = (HWND)(LONG_PTR)handle;
+  // TODO(robin): Handle return value of EnumWindows
+  EnumWindows(&FindWorkerW, reinterpret_cast<LPARAM>(&workerw));
 
-    // TODO(robin): Remove the style update we applied
+  // Update style of the Window we want to attach
+  SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_LAYERED);
+  SetParent(hwnd, workerw);
+  SetWindowPos(hwnd, NULL, OffsetX, OffsetY, Width, Height, 0);
+}
 
-    SetParent(hwnd, workerw);
-  }
-}  // namespace electronwallpaper
+void DetachWindow(unsigned char *handleBuffer) {
+  LONG_PTR handle = *reinterpret_cast<LONG_PTR *>(handleBuffer);
+  HWND hwnd = (HWND)(LONG_PTR)handle;
+
+  // TODO(robin): Remove the style update we applied
+
+  SetParent(hwnd, workerw);
+}
+} // namespace electronwallpaper

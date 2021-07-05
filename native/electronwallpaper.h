@@ -14,13 +14,18 @@
  * limitations under the License.
  *
  * ---------------------------------------------------------------
- *  
+ *
  * This file was modified on March the 6th 2021 by Kacper Stolarek
- * 
-*/
+ *
+ */
 
 #pragma once
 
+#include <windows.h>
+
 namespace electronwallpaper {
-  void AttachWindow(unsigned char*, int OffsetX, int OffsetY, int Width, int Height);
-}  // namespace electronwallpaper
+void AttachWindow(unsigned char *, int OffsetX, int OffsetY, int Width,
+                  int Height);
+
+void AttachWindow(HWND, int OffsetX, int OffsetY, int Width, int Height);
+} // namespace electronwallpaper

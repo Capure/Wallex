@@ -16,15 +16,15 @@
 
 #pragma once
 
-#include <napi.h>
 #include <iostream>
+#include <napi.h>
 #include <string>
 
 namespace Output {
-using std::string;
-using Napi::Error;
 using Napi::Env;
+using Napi::Error;
+using std::string;
 
-Error CreateError(Env env, const string& mesg, bool log = true);
-void Debug(const string& mesg);
-}  // namespace Output
+Error CreateError(Env env, const string &mesg, bool log = true);
+void Debug(const string &mesg);
+} // namespace Output

@@ -16,27 +16,27 @@
 
 #include "output.h"
 
-#include <napi.h>
 #include <iostream>
+#include <napi.h>
 #include <string>
 
 namespace Output {
-using std::string;
-using std::endl;
+using Napi::Env;
+using Napi::Error;
 using std::cerr;
 using std::cout;
-using Napi::Error;
-using Napi::Env;
+using std::endl;
+using std::string;
 
-Error CreateError(Env env, const string& mesg, bool log) {
+Error CreateError(Env env, const string &mesg, bool log) {
   if (log) {
     cerr << "[ERROR] (electron-wallpaper) " << mesg << endl;
   }
   return Error::New(env, mesg);
 }
 
-void Debug(const string& mesg) {
+void Debug(const string &mesg) {
   cout << "[DEBUG] (electron-wallpaper) " << mesg << endl;
 }
 
-}  // namespace Output
+} // namespace Output
