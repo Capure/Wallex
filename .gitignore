@@ -81,3 +81,5 @@ typings/
 lib/
 
 .vscode/
+
+.DS_Store
