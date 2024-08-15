@@ -13,6 +13,7 @@ const ICON_PATH = path.join(__dirname, "../public/trayTemplate.png");
 const icon = nativeImage.createFromPath(ICON_PATH);
 
 export interface WallexTrayHandlers {
+  onOpenWallpaperFolder: () => void;
   onRefresh: () => void;
   onQuit: () => void;
 }
@@ -28,8 +29,8 @@ const createTemplate = (handlers: WallexTrayHandlers) => {
   template = [...getAllDisplays().map(buildDisplayMenuTemplate)];
   template.push({ type: "separator" });
   template.push({
-    label: "Open the wallpaper folder",
-    click: () => console.log("not implemeted"),
+    label: "Open the wallpapers folder",
+    click: () => handlers.onOpenWallpaperFolder(),
   });
   template.push({
     label: "Refresh wallpapers",
