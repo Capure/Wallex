@@ -13,6 +13,8 @@ export class DarwinWebWallpaperRunner implements WallpaperRunner {
     };
     createWallpaper() {
         this.browserWindow = new BrowserWindow({
+            x: this.display.bounds.x,
+            y: this.display.bounds.y,
             width: this.display.size.width,
             height: this.display.size.height,
             autoHideMenuBar: true,
