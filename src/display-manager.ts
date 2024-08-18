@@ -14,7 +14,7 @@ export class DisplayManager {
     }
     public setWallpaper(wallpaper: Wallpaper) {
         if (this.wallpaperRunner) this.wallpaperRunner.destroyWallpaper();
-        this.wallpaperRunner = createWallpaperRunner(this.display, wallpaper.project);
+        this.wallpaperRunner = createWallpaperRunner(this.display, wallpaper);
         this.wallpaperRunner.createWallpaper();
     }
 }

@@ -1,10 +1,11 @@
 import path from "path";
 import fs from "fs";
+import type { Project } from "./shared-types/project";
 
 export interface Wallpaper {
   path: string;
   name: string;
-  project: any;
+  project: Project<any>;
 }
 
 const loadProject = (pathToWallpaper: string) => {
