@@ -8,7 +8,7 @@ import {
 } from "electron";
 import path from "path";
 import { getAllDisplays } from "./screen-utils";
-import { WallpaperManager } from "./wallpaper-manager";
+import { Wallpaper, WallpaperManager } from "./wallpaper-manager";
 import { DisplayManager } from "./display-manager";
 
 const ICON_PATH = path.join(__dirname, "../public/trayTemplate.png");
@@ -43,7 +43,7 @@ export class WallexTray implements WallexTrayHandlers {
   private buildDisplayMenuTemplate(
     displayManager: DisplayManager
   ): MenuItemConstructorOptions | Electron.MenuItem {
-    const submenu = this.wallpaperManager.getWallpapers().map(wallpaper => ({ label: wallpaper.name, click: () => { } }) as MenuItemConstructorOptions);
+    const submenu = this.wallpaperManager.getWallpapers().map(wallpaper => ({ label: wallpaper.name, click: () => this.onSetWallpaper(displayManager, wallpaper) }) as MenuItemConstructorOptions);
     return { label: displayManager.getLabel(), type: "submenu", submenu };
   };
 
@@ -69,6 +69,9 @@ export class WallexTray implements WallexTrayHandlers {
 
   // handlers
 
+  public onSetWallpaper(displayManager: DisplayManager, wallpaper: Wallpaper) {
+    displayManager.setWallpaper(wallpaper);
+  }
   public async onOpenWallpaperFolder() {
     shell.openPath(this.wallpaperManager.getWallpapersFolder());
   };
