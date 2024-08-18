@@ -1,6 +1,6 @@
 import { app } from "electron";
-import { WallexTray } from "./createTray";
-import { WallpaperManager } from "./wallpaperManager";
+import { WallexTray } from "./create-tray";
+import { WallpaperManager } from "./wallpaper-manager";
 
 const isOnMac = process.platform === "darwin";
 

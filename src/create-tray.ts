@@ -8,8 +8,8 @@ import {
   Tray,
 } from "electron";
 import path from "path";
-import { getAllDisplays } from "./screenUtils";
-import { WallpaperManager } from "./wallpaperManager";
+import { getAllDisplays } from "./screen-utils";
+import { WallpaperManager } from "./wallpaper-manager";
 
 const ICON_PATH = path.join(__dirname, "../public/trayTemplate.png");
 
