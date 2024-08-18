@@ -1,4 +1,4 @@
-import { type Tray, app, dialog } from "electron";
+import { app } from "electron";
 import { WallexTray } from "./createTray";
 import { WallpaperManager } from "./wallpaperManager";
 
@@ -9,5 +9,5 @@ app.whenReady().then(() => {
 
   const wallpaperManager = new WallpaperManager(app.getPath("userData"));
 
-  const tray = new WallexTray(app);
+  const tray = new WallexTray(wallpaperManager);
 });

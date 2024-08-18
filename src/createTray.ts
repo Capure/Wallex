@@ -1,5 +1,5 @@
 import {
-  App,
+  app,
   shell,
   Display,
   Menu,
@@ -23,12 +23,10 @@ export interface WallexTrayHandlers {
 
 
 export class WallexTray implements WallexTrayHandlers {
-  private app: App;
   private wallpaperManager: WallpaperManager;
   private tray: Tray;
-  constructor(app: App) {
-    this.app = app;
-    this.wallpaperManager = new WallpaperManager(this.app.getPath("userData"));
+  constructor(wallpaperManager: WallpaperManager) {
+    this.wallpaperManager = wallpaperManager;
     this.tray = this.buildTray();
   }
 
@@ -81,6 +79,6 @@ export class WallexTray implements WallexTrayHandlers {
     console.log(this.wallpaperManager.getWallpapers());
   };
   public onQuit() {
-    this.app.quit();
+    app.quit();
   };
 }
