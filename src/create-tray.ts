@@ -1,7 +1,6 @@
 import {
   app,
   shell,
-  Display,
   Menu,
   MenuItemConstructorOptions,
   nativeImage,
@@ -10,6 +9,7 @@ import {
 import path from "path";
 import { getAllDisplays } from "./screen-utils";
 import { WallpaperManager } from "./wallpaper-manager";
+import { DisplayManager } from "./display-manager";
 
 const ICON_PATH = path.join(__dirname, "../public/trayTemplate.png");
 
@@ -41,10 +41,10 @@ export class WallexTray implements WallexTrayHandlers {
   // template
 
   private buildDisplayMenuTemplate(
-    display: Display
+    displayManager: DisplayManager
   ): MenuItemConstructorOptions | Electron.MenuItem {
     const submenu = this.wallpaperManager.getWallpapers().map(wallpaper => ({ label: wallpaper.name, click: () => { } }) as MenuItemConstructorOptions);
-    return { label: display.label, type: "submenu", submenu };
+    return { label: displayManager.getLabel(), type: "submenu", submenu };
   };
 
   private createTemplate(handlers: WallexTrayHandlers) {
