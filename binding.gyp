@@ -1,4 +1,5 @@
 {
+  'target_name': 'noop',
   'conditions': [
     ['OS=="win"', {
       'targets': [

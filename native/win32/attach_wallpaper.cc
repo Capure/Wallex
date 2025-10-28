@@ -6,7 +6,6 @@
 #include <node_buffer.h>
 #include <windows.h>
 #include <vector>
-#include <iostream>
 
 using namespace v8;
 
@@ -118,25 +117,11 @@ class AddonData {
 
     return TRUE;
   }
-
-  static inline void Move(int x, int y) {
+  
+  static inline void SendMouseMsg(WPARAM message_type, int x, int y) {
     for (auto i : instance->mouse_events) {
       LPARAM mousePosWallpaper = MAKELPARAM(x - i.x, y - i.y);
-      PostMessageA(i.hwnd, WM_MOUSEMOVE, 0, mousePosWallpaper);
-    }
-  }
-
-  static inline void LMB_Down(int x, int y) {
-    for (auto i : instance->mouse_events) {
-      LPARAM mousePosWallpaper = MAKELPARAM(x - i.x, y - i.y);
-      PostMessageA(i.hwnd, WM_LBUTTONDOWN, 0, mousePosWallpaper);
-    }
-  }
-
-  static inline void LMB_Up(int x, int y) {
-    for (auto i : instance->mouse_events) {
-      LPARAM mousePosWallpaper = MAKELPARAM(x - i.x, y - i.y);
-      PostMessageA(i.hwnd, WM_LBUTTONUP, 0, mousePosWallpaper);
+      PostMessageA(i.hwnd, message_type, 0, mousePosWallpaper);
     }
   }
 
@@ -146,22 +131,19 @@ class AddonData {
       if (WindowFromPoint(data->pt) != instance->sys_list_view_32) {
         return CallNextHookEx(instance->mouse_hook, nCode, wParam, lParam);
       }
+
       auto x = data->pt.x;
       auto y = data->pt.y;
 
-      if (wParam == WM_LBUTTONUP) {
-        LMB_Up(x, y);
-      } else if (wParam == WM_LBUTTONDOWN) {
-        LMB_Down(x, y);
-      } else if (wParam == WM_MOUSEMOVE) {
-        Move(x, y);
+      if (wParam == WM_LBUTTONUP || wParam == WM_LBUTTONDOWN || wParam == WM_MOUSEMOVE) {
+        SendMouseMsg(wParam, x, y);
       }
     }
 
     return CallNextHookEx(instance->mouse_hook, nCode, wParam, lParam);
   }
 
-  // clears out data for window upon its closer
+  // clears out data for a given window on exit
   static inline void WinEventProc(HWINEVENTHOOK hWinEventHook, DWORD event, HWND hwnd,
                           LONG idObject, LONG idChild, DWORD dwEventThread,
                           DWORD dwmsEventTime) {
@@ -232,7 +214,6 @@ class AddonData {
     mouse_hook_thread = CreateThread(NULL, 0, MouseHookThread, reinterpret_cast<LPVOID>(&mouse_hook), 0, &dwThreadID);
 
     if (!mouse_hook_thread) {
-      std::cout << "Failed to create the hook thread: " << GetLastError() << std::endl;
       return false;
     }
 
