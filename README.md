@@ -15,7 +15,7 @@ For more feature complete experience refer to an older versions of wallex (Windo
 | Feature                    | Windows | MacOS | Linux |
 | ---------                  | ------- | ----- | ----- |
 | Web - Basic Support        | Yes     | Yes   | No    |
-| Web - Mouse Events         | No      | No    | No    |
+| Web - Mouse Events         | Yes     | No    | No    |
 | Web - Sound Support        | No      | No    | No    |
 | Web - CPU Saver            | No      | No    | No    |
 | Video - Basic Support      | No      | Yes   | No    |

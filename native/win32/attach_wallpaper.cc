@@ -5,11 +5,19 @@
 #include <node.h>
 #include <node_buffer.h>
 #include <windows.h>
+#include <vector>
+#include <iostream>
 
 using namespace v8;
 
 // Message to Progman to spawn a WorkerW
 #define WM_SPAWN_WORKER 0x052C
+
+struct EventData {
+  int x;
+  int y;
+  HWND hwnd;
+};
 
 class AddonData {
  public:
@@ -46,7 +54,7 @@ class AddonData {
       return false;
     }
 
-    return true;
+    return CreateMouseForwarder();
   }
 
   void SetWindowHandle(HWND handleBuffer) {
@@ -68,10 +76,20 @@ class AddonData {
   HWND workerw;
   HWND original_parent;
   HWND window_to_attach;
+  HWND sys_list_view_32;
+  HHOOK mouse_hook;
+  HANDLE mouse_hook_thread;
+  bool win_exit_already_hooked;
+  std::vector<EventData> mouse_events;
   int offset_x, offset_y, width, height;
+  // this is a hack to access instance of this class from within winapi callbacks
+  static inline AddonData* instance;
 
   explicit AddonData(Isolate* isolate, Local<Object> exports)
-      : workerw(NULL), original_parent(NULL), window_to_attach(NULL), offset_x(0), offset_y(0), width(0), height(0) {
+      : workerw(NULL), original_parent(NULL), window_to_attach(NULL),
+        sys_list_view_32(NULL), mouse_hook(NULL), mouse_hook_thread(NULL), mouse_events(),
+        offset_x(0), offset_y(0), width(0), height(0), win_exit_already_hooked(false) {
+    instance = this;
     exports_persistent.Reset(isolate, exports);
     exports_persistent.SetWeak(this, DeleteMe, WeakCallbackType::kParameter);
   }
@@ -87,6 +105,138 @@ class AddonData {
     }
 
     return TRUE;
+  }
+
+  // finds SysListView32 which is what the user clicks on when clicking on the desktop
+  static BOOL CALLBACK FindSysListView32(HWND hwnd, LPARAM param) {
+    HWND shelldll = FindWindowExA(hwnd, NULL, "SHELLDLL_DefView", NULL);
+
+    if (shelldll) {
+        *reinterpret_cast<HWND*>(param) = FindWindowExA(shelldll, NULL, "SysListView32", NULL);
+        return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  static inline void Move(int x, int y) {
+    for (auto i : instance->mouse_events) {
+      LPARAM mousePosWallpaper = MAKELPARAM(x - i.x, y - i.y);
+      PostMessageA(i.hwnd, WM_MOUSEMOVE, 0, mousePosWallpaper);
+    }
+  }
+
+  static inline void LMB_Down(int x, int y) {
+    for (auto i : instance->mouse_events) {
+      LPARAM mousePosWallpaper = MAKELPARAM(x - i.x, y - i.y);
+      PostMessageA(i.hwnd, WM_LBUTTONDOWN, 0, mousePosWallpaper);
+    }
+  }
+
+  static inline void LMB_Up(int x, int y) {
+    for (auto i : instance->mouse_events) {
+      LPARAM mousePosWallpaper = MAKELPARAM(x - i.x, y - i.y);
+      PostMessageA(i.hwnd, WM_LBUTTONUP, 0, mousePosWallpaper);
+    }
+  }
+
+  static inline LRESULT CALLBACK HookCallback(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (nCode >= 0) {
+      MSLLHOOKSTRUCT *data = (MSLLHOOKSTRUCT *)lParam;
+      if (WindowFromPoint(data->pt) != instance->sys_list_view_32) {
+        return CallNextHookEx(instance->mouse_hook, nCode, wParam, lParam);
+      }
+      auto x = data->pt.x;
+      auto y = data->pt.y;
+
+      if (wParam == WM_LBUTTONUP) {
+        LMB_Up(x, y);
+      } else if (wParam == WM_LBUTTONDOWN) {
+        LMB_Down(x, y);
+      } else if (wParam == WM_MOUSEMOVE) {
+        Move(x, y);
+      }
+    }
+
+    return CallNextHookEx(instance->mouse_hook, nCode, wParam, lParam);
+  }
+
+  // clears out data for window upon its closer
+  static inline void WinEventProc(HWINEVENTHOOK hWinEventHook, DWORD event, HWND hwnd,
+                          LONG idObject, LONG idChild, DWORD dwEventThread,
+                          DWORD dwmsEventTime) {
+    if (idObject == OBJID_WINDOW && idChild == CHILDID_SELF) {
+      for (int i = 0; i < instance->mouse_events.size(); i++) {
+        if (instance->mouse_events[i].hwnd == hwnd) {
+          SuspendThread(instance->mouse_hook_thread);
+          instance->mouse_events.erase(instance->mouse_events.begin() + i);
+          ResumeThread(instance->mouse_hook_thread);
+        }
+      }
+    }
+  }
+
+  static inline DWORD WINAPI ListenForWindowExit(LPVOID lpParam) {
+    HWINEVENTHOOK hook =
+        SetWinEventHook(EVENT_OBJECT_DESTROY, EVENT_OBJECT_DESTROY, NULL,
+                        WinEventProc, NULL, NULL, WINEVENT_OUTOFCONTEXT);
+
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0) > 0) {
+      TranslateMessage(&msg);
+      DispatchMessage(&msg);
+    }
+
+    return 0;
+  }
+
+  static inline DWORD WINAPI MouseHookThread(LPVOID lpParam) {
+    *reinterpret_cast<HHOOK*>(lpParam) = SetWindowsHookEx(WH_MOUSE_LL, HookCallback, NULL, NULL);
+
+    if (!*reinterpret_cast<HHOOK*>(lpParam) && GetLastError != 0x0) {
+      return TRUE;
+    }
+
+    if (!instance->win_exit_already_hooked) {
+      DWORD dThID;
+      HANDLE thread = CreateThread(NULL, NULL, ListenForWindowExit, NULL, NULL, &dThID);
+      if (!thread) {
+        return TRUE;
+      }
+      instance->win_exit_already_hooked = true;
+    }
+
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0) > 0) {
+      TranslateMessage(&msg);
+      DispatchMessage(&msg);
+    }
+
+    return FALSE;
+  }
+
+  bool CreateMouseForwarder() {
+    EventData initialEvent;
+    initialEvent.x = offset_x;
+    initialEvent.y = offset_y;
+    initialEvent.hwnd = window_to_attach;
+
+    mouse_events.push_back(initialEvent);
+
+    EnumWindows(&FindSysListView32, reinterpret_cast<LPARAM>(&sys_list_view_32));
+    if (!sys_list_view_32) {
+      return false;
+    }
+
+    DWORD dwThreadID;
+    mouse_hook_thread = CreateThread(NULL, 0, MouseHookThread, reinterpret_cast<LPVOID>(&mouse_hook), 0, &dwThreadID);
+
+    if (!mouse_hook_thread) {
+      std::cout << "Failed to create the hook thread: " << GetLastError() << std::endl;
+      return false;
+    }
+
+    return true;
   }
 
   ~AddonData() { 
