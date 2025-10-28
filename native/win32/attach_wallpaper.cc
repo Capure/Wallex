@@ -112,7 +112,7 @@ void AttachWallpaper(const FunctionCallbackInfo<Value>& info) {
         !info[3]->IsNumber() ||
         !info[4]->IsNumber()) {
         isolate->ThrowException(v8::Exception::TypeError(
-        v8::String::NewFromUtf8Literal(isolate, "Invalid arguments arguments.")));
+        v8::String::NewFromUtf8Literal(isolate, "Invalid arguments.")));
         return;
     }
 
