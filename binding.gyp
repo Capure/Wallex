@@ -7,6 +7,11 @@
           'target_name': 'attach_wallpaper',
           'sources': [ 'native/win32/attach_wallpaper.cc' ],
           'win_delay_load_hook': 'true'
+        },
+        {
+          'target_name': 'audio',
+          'sources': [ 'native/win32/audio.cc' ],
+          'win_delay_load_hook': 'true'
         }
       ]
     }]

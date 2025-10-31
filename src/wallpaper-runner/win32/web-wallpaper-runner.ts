@@ -1,7 +1,7 @@
 import { BrowserWindow, type Display } from "electron";
 import type { Wallpaper } from "../../wallpaper-manager";
 import type { WallpaperRunner } from "../interfaces/wallpaper-runner";
-import { attachWallpaper } from "./native";
+import { attachWallpaper, captureAudio } from "./native";
 import path from "path";
 
 export class WinWebWallpaperRunner implements WallpaperRunner {
@@ -37,6 +37,15 @@ export class WinWebWallpaperRunner implements WallpaperRunner {
     if (!attachWallpaper(this.browserWindow.getNativeWindowHandle(), x, y, width, height)) {
       throw new Error("Failed to attach the window.");
     };
+
+    const { left, right } = captureAudio();
+    const floatsA = new Float32Array(left.buffer, left.byteOffset, left.byteLength / 4);
+    const floatsB = new Float32Array(right.buffer, right.byteOffset, right.byteLength / 4);
+
+    setInterval(() => {
+      console.log('A:', floatsA.slice(0, 5));
+      console.log('B:', floatsB.slice(0, 5));
+    }, 100);
   }
   destroyWallpaper() {
     if (this.browserWindow) {
