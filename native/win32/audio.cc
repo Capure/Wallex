@@ -4,8 +4,6 @@
  */
 #include <node.h>
 #include <node_buffer.h>
-#include <windows.h>
-#include <vector>
 #include <cmath>
 #include <rtaudio/RtAudio.h>
 #include <fftw3.h>
@@ -16,15 +14,8 @@ constexpr unsigned int SAMPLE_RATE = 48000;
 constexpr unsigned int NUM_BANDS = 64;
 
 struct OutputData {
-    std::vector<float> leftBands;
-    std::vector<float> rightBands;
-
-    OutputData(unsigned int num_bands) : leftBands(num_bands), rightBands(num_bands) {}
-};
-
-struct AudioThreadData {
-  OutputData* outputData;
-  RtAudio* audio;
+  float* left;
+  float* right;
 };
 
 // Required by v8
@@ -34,7 +25,7 @@ inline void BufferCleanup(char* data, void* hint) {
 
 class AddonData {
  public:
-  OutputData* outputData;
+  OutputData outputData;
 
   static Local<Value> New(Isolate* isolate, Local<Object> exports) {
     return External::New(isolate, new AddonData(isolate, exports));
@@ -47,49 +38,29 @@ class AddonData {
         return false;
     }
 
-    if (audio.isStreamOpen() || audio_thread != NULL) {
+    if (audio.isStreamOpen()) {
       // Already listening
       return false;
     }
-
-    AudioThreadData audio_thread_data;
-    audio_thread_data.outputData = outputData;
-    audio_thread_data.audio = &audio;
-
-    audio_thread = CreateThread(NULL, 0, AudioThread, &audio_thread_data, 0, &audio_thread_id);
-    if (audio_thread == NULL) {
-      return false;
-    }
-
-    return true;
-  }
-
- private:
-  RtAudio audio;
-  HANDLE audio_thread;
-  DWORD audio_thread_id;
-
-  static DWORD WINAPI AudioThread(LPVOID lpParam) {
-    AudioThreadData* audio_thread_data = reinterpret_cast<AudioThreadData*>(lpParam);
-
+    
     RtAudio::StreamParameters params;
-    params.deviceId = audio_thread_data->audio->getDefaultOutputDevice();
+    params.deviceId = audio.getDefaultOutputDevice();
     params.nChannels = 2;
     params.firstChannel = 0;
 
     // This can be updated by rtaudio
     unsigned int nBufferFrames = 1024;
 
-    audio_thread_data->audio->openStream(nullptr, &params, RTAUDIO_FLOAT32, SAMPLE_RATE, &nBufferFrames, &audioCallback, audio_thread_data->outputData);
-    audio_thread_data->audio->startStream();
+    audio.openStream(nullptr, &params, RTAUDIO_FLOAT32, SAMPLE_RATE, &nBufferFrames, &audioCallback, &outputData);
+    audio.startStream();
 
-    // TODO: Remove
-    while (true) {
-      Sleep(100);
-    }
+    return true;
   }
 
-  static void computeBands(const double* in, std::vector<float>& bands, unsigned int nBufferFrames) {
+ private:
+  RtAudio audio;
+
+  static void computeBands(const double* in, float* bands, unsigned int nBufferFrames) {
     fftw_complex* out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * nBufferFrames);
     fftw_plan plan = fftw_plan_dft_r2c_1d(nBufferFrames, const_cast<double*>(in), out, FFTW_ESTIMATE);
     fftw_execute(plan);
@@ -111,7 +82,9 @@ class AddonData {
     }
 
     // Normalize
-    for (auto& b : bands) b = std::min(1.0f, static_cast<float>(b / maxVal));
+    for (size_t i = 0; i < NUM_BANDS; i++) {
+      bands[i] = std::min(1.0f, static_cast<float>(bands[i] / maxVal));
+    }
 
     fftw_destroy_plan(plan);
     fftw_free(out);
@@ -131,14 +104,20 @@ class AddonData {
         right[i] = in[2 * i + 1];
     }
 
-    computeBands(left.data(), outputData->leftBands, nBufferFrames);
-    computeBands(right.data(), outputData->rightBands, nBufferFrames);
+    computeBands(left.data(), outputData->left, nBufferFrames);
+    computeBands(right.data(), outputData->right, nBufferFrames);
 
     return 0;
   }
 
 
-  explicit AddonData(Isolate* isolate, Local<Object> exports) : audio(RtAudio::WINDOWS_WASAPI), audio_thread(NULL), audio_thread_id(NULL), outputData(NULL) {
+  explicit AddonData(Isolate* isolate, Local<Object> exports) : audio(RtAudio::WINDOWS_WASAPI) {
+    auto* allocator = isolate->GetArrayBufferAllocator();
+
+    // TODO: Free this
+    outputData.left = static_cast<float*>(allocator->Allocate(sizeof(float)*NUM_BANDS));
+    outputData.right = static_cast<float*>(allocator->Allocate(sizeof(float)*NUM_BANDS));
+
     exports_persistent.Reset(isolate, exports);
     exports_persistent.SetWeak(this, DeleteMe, WeakCallbackType::kParameter);
   }
@@ -146,8 +125,6 @@ class AddonData {
   ~AddonData() { 
     audio.stopStream();
     if (audio.isStreamOpen()) audio.closeStream();
-    CloseHandle(audio_thread);
-    delete outputData;
     exports_persistent.Reset();
   }
 
@@ -165,15 +142,13 @@ void CaptureAudio(const FunctionCallbackInfo<Value>& info) {
     AddonData* addon_data =
       static_cast<AddonData*>(info.Data().As<External>()->Value());
 
-    addon_data->outputData = static_cast<OutputData*>(allocator->Allocate(sizeof(OutputData)));
-
     bool success = addon_data->startCapture();
     if (!success) {
       // TODO: Throw JS exception here
     }
     
-    Local<Object> bufferLeft = node::Buffer::New(isolate, reinterpret_cast<char*>(&addon_data->outputData->leftBands), NUM_BANDS * sizeof(float), BufferCleanup, nullptr).ToLocalChecked();
-    Local<Object> bufferRight = node::Buffer::New(isolate, reinterpret_cast<char*>(&addon_data->outputData->rightBands), NUM_BANDS * sizeof(float), BufferCleanup, nullptr).ToLocalChecked();
+    Local<Object> bufferLeft = node::Buffer::New(isolate, reinterpret_cast<char*>(addon_data->outputData.left), NUM_BANDS * sizeof(float), BufferCleanup, nullptr).ToLocalChecked();
+    Local<Object> bufferRight = node::Buffer::New(isolate, reinterpret_cast<char*>(addon_data->outputData.right), NUM_BANDS * sizeof(float), BufferCleanup, nullptr).ToLocalChecked();
 
     Local<Object> result = Object::New(isolate);
     result->Set(isolate->GetCurrentContext(),
